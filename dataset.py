@@ -1,3 +1,4 @@
+import time
 import math
 import random
 import numpy as np
@@ -5,6 +6,8 @@ import h5py
 import torch
 from torch.utils.data import Dataset
 from constants import *
+
+import matplotlib.pyplot as plt
 
 # tfile = open('image_boxes.txt', 'r')
 # content = tfile.read()
@@ -30,7 +33,14 @@ class HairFollicleDataset(Dataset):
         try:
             hfile = h5py.File(filename, 'r')
             keys = list(hfile.keys())
-            self.data = np.asarray(hfile[keys[0]], 'float32')
+            # start = time.time()
+            # Value returns ndarray from HDF5 data. It also speeds up data loading.
+            self.data = np.asarray([hfile[k].value for k in keys], 'float32')
+            # end = time.time()
+            # print('Time elapsed: ', end - start)
+            self.data = np.transpose(self.data, (0, 3, 1, 2))
+            # plt.imshow(self.data[0])
+            # plt.show()
         except Exception as e:
             print('Unable to load the data.', e)
         
@@ -40,11 +50,15 @@ class HairFollicleDataset(Dataset):
     def __getitem__(self, index):
         return self.data[index]
 
-def get_loader(filename):
+def get_tv_loaders(filename, batch_size):
     ds = HairFollicleDataset(filename)
+    train_set, val_set = validation_split(ds)
+    return get_loader(train_set, batch_size), get_loader(val_set, batch_size)
+
+def get_loader(ds, batch_size):
     return torch.utils.data.DataLoader(
         dataset=ds,
-        batch_size=BATCH_SIZE,
+        batch_size=batch_size,
         shuffle=True,
         num_workers=1,
         drop_last=True
@@ -52,7 +66,7 @@ def get_loader(filename):
 
 def validation_split(ds, split=0.2):
     """
-    Generic function that takes a DataLoader object and splits it into training and validation datasets
+    Generic function that takes a DataLoader object and splits it into training and validation dataloaders
     """
     r = list(range(len(ds)))
     random.shuffle(r)
@@ -69,7 +83,9 @@ def validation_split(ds, split=0.2):
 
     return train_set, val_set
 
-loader = get_loader('data.hdf5')
-train_set, val_set = validation_split(loader)
-print('train set: ', len(train_set))
-print('val set: ', len(val_set))
+if __name__ == '__main__':
+    train_loader, val_loader = get_tv_loaders('data.hdf5', 16)
+    print('val loader: ', val_loader)
+    for data in val_loader:
+        # NOTE: printing data from a dataloader is slow
+        print(data)
