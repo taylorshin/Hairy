@@ -2,11 +2,18 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 import argparse
+import torch.optim as optim
 from tqdm import tqdm
 from dataset import *
 from model import Hairy
+from constants import *
 
-def train(model, train_loader, val_loader):
+def plot_graph(training_loss, name):
+    plt.clf()
+    plt.plot(training_loss)
+    plt.savefig(OUT_DIR + '/' + name)
+
+def train(model, train_loader, val_loader, optimizer, plot=True):
     # Number of training steps per epoch
     epoch = 1
     total_step = 1
@@ -25,10 +32,40 @@ def train(model, train_loader, val_loader):
             t.set_description('Epoch {}'.format(epoch))
 
             for data in t:
-                print('.')
+                metrics = train_step(model, optimizer, data, total_step)
 
-def train_step(model, optimizer, X, Y, batch_size=50):
-    return True
+                total_metrics += metrics
+                avg_metrics = total_metrics / step
+                # t.set_postfix(loss=avg_metrics[0])
+
+                step += 1
+                total_step += 1
+
+        train_metrics.append(avg_metrics)
+
+        # TODO: validation
+
+        if plot:
+            plot_graph([m[0] for m in train_metrics], 'loss.png')
+
+        # Save model
+        torch.save(model_save.state_dict(), OUT_DIR + '/model' + '.pt')
+
+        epoch += 1
+
+def train_step(model, optimizer, data, total_step):
+    model.train()
+
+    loss, metrics = compute_metrics(model, data, total_step)
+
+    optimizer.zero_grad()
+    optimizer.backward(loss)
+    optimizer.step()
+
+    return metrics
+
+def compute_metrics(model, data, total_step):
+    return 0, 0
 
 def main():
     parser = argparse.ArgumentParser(description='Trains model')
@@ -38,13 +75,14 @@ def main():
     # TODO: Add cuda functionality to Hairy
     model = Hairy()
 
-    # TODO: OPTIMIZER
+    # Optimizer
+    optimizer = optim.Adam(model.parameters())
 
     print('Loading data...')
     train_loader, val_loader = get_tv_loaders('data.hdf5', args.batch_size)
     print('Data loaded.')
     print('Training has started.')
-    train(model, train_loader, val_loader)
+    train(model, train_loader, val_loader, optimizer)
 
 if __name__ == '__main__':
     main()

@@ -1,1 +1,2 @@
 BATCH_SIZE = 16
+OUT_DIR = 'out'
