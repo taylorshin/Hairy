@@ -4,15 +4,9 @@ import random
 import numpy as np
 import h5py
 import torch
+import matplotlib.pyplot as plt
 from torch.utils.data import Dataset
 from constants import *
-
-import matplotlib.pyplot as plt
-
-# tfile = open('image_boxes.txt', 'r')
-# content = tfile.read()
-# real_content = eval(content)
-# print(real_content)
 
 class GenHelper(Dataset):
     def __init__(self, parent, length, mapping):
@@ -38,9 +32,9 @@ class HairFollicleDataset(Dataset):
             self.data = np.asarray([hfile[k].value for k in keys], 'float32')
             # end = time.time()
             # print('Time elapsed: ', end - start)
-            self.data = np.transpose(self.data, (0, 3, 1, 2))
             # plt.imshow(self.data[0])
             # plt.show()
+            self.data = np.transpose(self.data, (0, 3, 1, 2))
         except Exception as e:
             print('Unable to load the data.', e)
         

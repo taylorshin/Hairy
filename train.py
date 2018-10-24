@@ -2,11 +2,14 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 import argparse
+import torch.nn as nn
 import torch.optim as optim
 from tqdm import tqdm
 from dataset import *
 from model import Hairy
 from constants import *
+
+criterion = nn.MSELoss()
 
 def plot_graph(training_loss, name):
     plt.clf()
@@ -76,7 +79,7 @@ def main():
     model = Hairy()
 
     # Optimizer
-    optimizer = optim.Adam(model.parameters())
+    optimizer = optim.SGD(model.parameters(), lr=0.001)
 
     print('Loading data...')
     train_loader, val_loader = get_tv_loaders('data.hdf5', args.batch_size)
