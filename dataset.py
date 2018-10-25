@@ -77,9 +77,40 @@ def validation_split(ds, split=0.2):
 
     return train_set, val_set
 
+def convert_boxes_to_labels(box_dict):
+    """
+    Takes in bounding boxes (dict) extracted from processed data and converts them into a label matrix.
+    """
+    n = len(box_dict)
+    t = B * (5 + C)
+    labels = np.zeros((n, S1, S2, t))
+    for i, boxes in box_dict.items():
+        img = labels[i - 1]
+        for j, box in enumerate(boxes):
+            x, y, w, h = box
+            row = y // GRID_HEIGHT
+            col = x // GRID_WIDTH
+            box_data = img[row, col]
+            # Relative x
+            box_data[j * 5] = x % GRID_WIDTH
+            # Relative y
+            box_data[j * 5 + 1] = y % GRID_HEIGHT
+            # Width
+            box_data[j * 5 + 2] = w
+            # Height
+            box_data[j * 5 + 3] = h
+            # Confidence level
+            box_data[j * 5 + 4] = 1
+    return labels
+
 if __name__ == '__main__':
-    train_loader, val_loader = get_tv_loaders('data.hdf5', 16)
-    print('val loader: ', val_loader)
-    for data in val_loader:
-        # NOTE: printing data from a dataloader is slow
-        print(data)
+    # train_loader, val_loader = get_tv_loaders('data.hdf5', 16)
+    # print('val loader: ', val_loader)
+    # for data in val_loader:
+    #     # NOTE: printing data from a dataloader is slow
+    #     print(data)
+    tfile = open('image_boxes.txt', 'r')
+    content = tfile.read()
+    box_dict = eval(content)
+    labels = convert_boxes_to_labels(box_dict)
+    print(labels[0, 3, 8])
