@@ -7,6 +7,7 @@ import torch
 import matplotlib.pyplot as plt
 from torch.utils.data import Dataset
 from constants import *
+from util import *
 
 class GenHelper(Dataset):
     def __init__(self, parent, length, mapping):
@@ -90,18 +91,57 @@ def convert_boxes_to_labels(box_dict):
             x, y, w, h = box
             row = y // GRID_HEIGHT
             col = x // GRID_WIDTH
+            # Grid cell center position
+            cell_x = col * GRID_WIDTH + GRID_WIDTH / 2
+            cell_y = row * GRID_HEIGHT + GRID_HEIGHT / 2
+            # B * (5 + C) vector
             box_data = img[row, col]
-            # Relative x
-            box_data[j * 5] = x % GRID_WIDTH
+            # Relative x from the center of the grid cell
+            box_data[j * 5] = cell_x - x
             # Relative y
-            box_data[j * 5 + 1] = y % GRID_HEIGHT
+            box_data[j * 5 + 1] = cell_y - y
             # Width
             box_data[j * 5 + 2] = w
             # Height
             box_data[j * 5 + 3] = h
             # Confidence level
             box_data[j * 5 + 4] = 1
+    # Relative x's are normalized by half the grid cell size
+    labels[:, :, :, 0::5] = labels[:, :, :, 0::5] / (GRID_WIDTH / 2)
+    labels[:, :, :, 1::5] = labels[:, :, :, 1::5] / (GRID_HEIGHT / 2)
+    # Width and height are normalized by the corresponding max values (set to 500 for now)
+    labels[:, :, :, 2::5] = labels[:, :, :, 2::5] / MAX_BOX_WIDTH
+    labels[:, :, :, 3::5] = labels[:, :, :, 3::5] / MAX_BOX_HEIGHT
+
     return labels
+
+def convert_labels_to_boxes(labels):
+    """
+    Test if convert_boxes_to_labels function works
+    """
+    box_dict = {}
+    for i in range(len(labels)):
+        box_dict[i] = []
+
+    for l, label in enumerate(labels):
+        indices = np.nonzero(label)
+        for i in range(0, len(indices[0]), 5):
+            row = indices[0][i]
+            col = indices[1][i]
+            x = label[row, col, indices[2][i]]
+            y = label[indices[0][i + 1], indices[1][i + 1], indices[2][i + 1]]
+            w = label[indices[0][i + 2], indices[1][i + 2], indices[2][i + 2]]
+            h = label[indices[0][i + 3], indices[1][i + 3], indices[2][i + 3]]
+            # c = label[indices[0][i + 4], indices[1][i + 4], indices[2][i + 4]]
+            cell_x = col * GRID_WIDTH + GRID_WIDTH / 2
+            cell_y = row * GRID_HEIGHT + GRID_HEIGHT / 2
+            # Unnormalize values
+            x = int(x * (GRID_WIDTH / 2) + cell_x)
+            y = int(y * (GRID_HEIGHT / 2) + cell_y)
+            w = int(w * MAX_BOX_WIDTH)
+            h = int(h * MAX_BOX_HEIGHT)
+            box_dict[l].append([x, y, w, h])
+    return box_dict
 
 if __name__ == '__main__':
     # train_loader, val_loader = get_tv_loaders('data.hdf5', 16)
@@ -114,3 +154,13 @@ if __name__ == '__main__':
     box_dict = eval(content)
     labels = convert_boxes_to_labels(box_dict)
     print(labels[0, 3, 8])
+    print(labels[0, 3, 6])
+    boxes = convert_labels_to_boxes(labels)
+    print(boxes)
+    
+    ds = HairFollicleDataset('data.hdf5')
+    index = 0
+    image = np.transpose(ds[index], (1, 2, 0))
+    boxed_image = draw_boxes(image, boxes[index])
+    plt.imshow(boxed_image)
+    plt.show()
