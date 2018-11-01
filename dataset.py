@@ -25,17 +25,26 @@ class GenHelper(Dataset):
 class HairFollicleDataset(Dataset):
     def __init__(self, filename):
         self.data = []
+        self.labels = []
+
         try:
             hfile = h5py.File(filename, 'r')
             keys = list(hfile.keys())
+            # TODO: add back empty arrays for img 33 and 173 in txt file
             # start = time.time()
             # Value returns ndarray from HDF5 data. It also speeds up data loading.
             self.data = np.asarray([hfile[k].value for k in keys], 'float32')
+            self.data = np.transpose(self.data, (0, 3, 1, 2))
+            print('data: ', self.data.shape)
             # end = time.time()
             # print('Time elapsed: ', end - start)
             # plt.imshow(self.data[0])
             # plt.show()
-            self.data = np.transpose(self.data, (0, 3, 1, 2))
+            tfile = open('image_boxes.txt', 'r')
+            content = tfile.read()
+            box_dict = eval(content)
+            self.labels = convert_boxes_to_labels(box_dict)
+            print('labels: ', len(self.labels))
         except Exception as e:
             print('Unable to load the data.', e)
         
@@ -43,7 +52,9 @@ class HairFollicleDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, index):
-        return self.data[index]
+        x = self.data[index]
+        y = self.labels[index]
+        return x, y
 
 def get_tv_loaders(filename, batch_size):
     ds = HairFollicleDataset(filename)
@@ -85,8 +96,12 @@ def convert_boxes_to_labels(box_dict):
     n = len(box_dict)
     t = B * (5 + C)
     labels = np.zeros((n, S1, S2, t))
-    for i, boxes in box_dict.items():
-        img = labels[i - 1]
+    # TODO: Remove this special code for missing data in old dataset
+    i = 0
+    # for i, boxes in box_dict.items():
+    for _, boxes in box_dict.items():
+        # img = labels[i - 1]
+        img = labels[i]
         for j, box in enumerate(boxes):
             x, y, w, h = box
             row = y // GRID_HEIGHT
@@ -106,6 +121,8 @@ def convert_boxes_to_labels(box_dict):
             box_data[j * 5 + 3] = h
             # Confidence level
             box_data[j * 5 + 4] = 1
+        # TODO: Remove this special code for missing data in old dataset
+        i += 1
     # Relative x's are normalized by half the grid cell size
     labels[:, :, :, 0::5] = labels[:, :, :, 0::5] / (GRID_WIDTH / 2)
     labels[:, :, :, 1::5] = labels[:, :, :, 1::5] / (GRID_HEIGHT / 2)

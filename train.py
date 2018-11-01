@@ -59,16 +59,24 @@ def train(model, train_loader, val_loader, optimizer, plot=True):
 def train_step(model, optimizer, data, total_step):
     model.train()
 
-    loss, metrics = compute_metrics(model, data, total_step)
+    # loss, metrics = compute_metrics(model, data, total_step)
+    inputs, labels = data
+    print('inputs: ', inputs.shape)
+    print('labels: ', labels.shape)
 
+    # Zero out gradients
     optimizer.zero_grad()
+
+    # Forward pass -> backward pass -> optimize
+    outputs = model(inputs)
+    print('outputs: ', outputs)
     optimizer.backward(loss)
     optimizer.step()
 
     return metrics
 
-def compute_metrics(model, data, total_step):
-    return 0, 0
+# def compute_metrics(model, data, total_step):
+#     return False
 
 def main():
     parser = argparse.ArgumentParser(description='Trains model')
