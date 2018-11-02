@@ -17,6 +17,7 @@ def plot_graph(training_loss, name):
     plt.savefig(OUT_DIR + '/' + name)
 
 def train(model, train_loader, val_loader, optimizer, plot=True):
+    model_save = model
     # Number of training steps per epoch
     epoch = 1
     total_step = 1
@@ -39,7 +40,7 @@ def train(model, train_loader, val_loader, optimizer, plot=True):
 
                 total_metrics += metrics
                 avg_metrics = total_metrics / step
-                # t.set_postfix(loss=avg_metrics[0])
+                t.set_postfix(loss=avg_metrics[0])
 
                 step += 1
                 total_step += 1
@@ -61,19 +62,17 @@ def train_step(model, optimizer, data, total_step):
 
     # loss, metrics = compute_metrics(model, data, total_step)
     inputs, labels = data
-    print('inputs: ', inputs.shape)
-    print('labels: ', labels.shape)
 
     # Zero out gradients
     optimizer.zero_grad()
 
     # Forward pass -> backward pass -> optimize
     outputs = model(inputs)
-    print('outputs: ', outputs)
-    optimizer.backward(loss)
+    loss = criterion(outputs.permute(0, 2, 3, 1), labels.float())
+    loss.backward()
     optimizer.step()
 
-    return metrics
+    return np.array([loss.item()])
 
 # def compute_metrics(model, data, total_step):
 #     return False
@@ -93,7 +92,7 @@ def main():
     train_loader, val_loader = get_tv_loaders('data.hdf5', args.batch_size)
     print('Data loaded.')
     print('Training has started.')
-    train(model, train_loader, val_loader, optimizer)
+    train(model, train_loader, val_loader, optimizer, False)
 
 if __name__ == '__main__':
     main()

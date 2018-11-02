@@ -7,3 +7,4 @@ __pycache__/
 .DS_Store
 data.hdf5
 image_boxes.txt
+out/

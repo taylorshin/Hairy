@@ -35,7 +35,6 @@ class HairFollicleDataset(Dataset):
             # Value returns ndarray from HDF5 data. It also speeds up data loading.
             self.data = np.asarray([hfile[k].value for k in keys], 'float32')
             self.data = np.transpose(self.data, (0, 3, 1, 2))
-            print('data: ', self.data.shape)
             # end = time.time()
             # print('Time elapsed: ', end - start)
             # plt.imshow(self.data[0])
@@ -44,7 +43,6 @@ class HairFollicleDataset(Dataset):
             content = tfile.read()
             box_dict = eval(content)
             self.labels = convert_boxes_to_labels(box_dict)
-            print('labels: ', len(self.labels))
         except Exception as e:
             print('Unable to load the data.', e)
         
