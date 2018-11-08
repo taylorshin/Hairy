@@ -42,7 +42,7 @@ class HairFollicleDataset(Dataset):
             tfile = open('image_boxes.txt', 'r')
             content = tfile.read()
             box_dict = eval(content)
-            self.labels = convert_boxes_to_labels(box_dict)
+            self.labels = convert_boxes_to_labels(box_dict, S1, S2, T)
         except Exception as e:
             print('Unable to load the data.', e)
         
@@ -87,13 +87,13 @@ def validation_split(ds, split=0.2):
 
     return train_set, val_set
 
-def convert_boxes_to_labels(box_dict):
+def convert_boxes_to_labels(box_dict, width, height, depth):
     """
     Takes in bounding boxes (dict) extracted from processed data and converts them into a label matrix.
     """
     n = len(box_dict)
     t = B * (5 + C)
-    labels = np.zeros((n, S1, S2, t))
+    labels = np.zeros((n, width, height, depth))
     # TODO: Remove this special code for missing data in old dataset
     i = 0
     # for i, boxes in box_dict.items():

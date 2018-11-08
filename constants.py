@@ -1,6 +1,9 @@
 BATCH_SIZE = 16
-S1 = 7
-S2 = 10
+# S1 = 7
+S1 = 8
+# S2 = 10
+S2 = 13
+T = 32
 B = 5
 C = 0
 GRID_WIDTH = 100

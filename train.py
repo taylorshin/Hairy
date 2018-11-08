@@ -16,7 +16,7 @@ def plot_graph(training_loss, name):
     plt.plot(training_loss)
     plt.savefig(OUT_DIR + '/' + name)
 
-def train(model, train_loader, val_loader, optimizer, plot=True):
+def train(model, device, train_loader, val_loader, optimizer, plot=True):
     model_save = model
     # Number of training steps per epoch
     epoch = 1
@@ -36,7 +36,7 @@ def train(model, train_loader, val_loader, optimizer, plot=True):
             t.set_description('Epoch {}'.format(epoch))
 
             for data in t:
-                metrics = train_step(model, optimizer, data, total_step)
+                metrics = train_step(model, optimizer, device, data, total_step)
 
                 total_metrics += metrics
                 avg_metrics = total_metrics / step
@@ -57,11 +57,13 @@ def train(model, train_loader, val_loader, optimizer, plot=True):
 
         epoch += 1
 
-def train_step(model, optimizer, data, total_step):
+def train_step(model, optimizer, device, data, total_step):
     model.train()
 
     # loss, metrics = compute_metrics(model, data, total_step)
     inputs, labels = data
+    # Send inputs and targets at every step to GPU if available
+    inputs, labels = inputs.to(device), labels.to(device)
 
     # Zero out gradients
     optimizer.zero_grad()
@@ -80,19 +82,26 @@ def train_step(model, optimizer, data, total_step):
 def main():
     parser = argparse.ArgumentParser(description='Trains model')
     parser.add_argument('--batch-size', default=16, type=int, help='Number of data points per batch')
+    parser.add_argument('--lr', default=1e-5, type=float, help='Learning rate')
     args = parser.parse_args()
+
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    # Assume that we are on a CUDA machine, then this should print a CUDA device:
+    print('Device: ', device)
 
     # TODO: Add cuda functionality to Hairy
     model = Hairy()
+    model.to(device)
+    print(model)
 
     # Optimizer
-    optimizer = optim.SGD(model.parameters(), lr=0.001)
+    optimizer = optim.SGD(model.parameters(), lr=args.lr)
 
     print('Loading data...')
     train_loader, val_loader = get_tv_loaders('data.hdf5', args.batch_size)
     print('Data loaded.')
     print('Training has started.')
-    train(model, train_loader, val_loader, optimizer, False)
+    train(model, device, train_loader, val_loader, optimizer, False)
 
 if __name__ == '__main__':
     main()
