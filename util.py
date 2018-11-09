@@ -7,7 +7,6 @@ from dataset import *
 def draw_boxes(image, boxes):
     image_w, image_h, _ = image.shape
     for box in boxes:
-        print('box: ', box.shape)
         x, y, w, h = box
         x_min = int(x - w / 2.0)
         y_min = int(y - h / 2.0)
@@ -22,8 +21,8 @@ if __name__ == '__main__':
     boxes = eval(content)
 
     ds = HairFollicleDataset('data.hdf5')
-    index = 1
-    image = np.transpose(ds[index], (1, 2, 0))
+    index = 0
+    image = np.transpose(ds[index][0], (1, 2, 0))
     boxed_image = draw_boxes(image, boxes[index + 1])
     plt.imshow(boxed_image)
     plt.show()

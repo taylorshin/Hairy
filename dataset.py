@@ -140,8 +140,7 @@ def convert_matrix_to_map(labels):
 
     for l, label in enumerate(labels):
         indices = np.nonzero(label)
-        # for i in range(0, len(indices[0]), 5):
-        for i in range(0, T, 5):
+        for i in range(0, len(indices[0]), 5):
             row = indices[0][i]
             col = indices[1][i]
             x = label[row, col, indices[2][i]]
@@ -152,8 +151,8 @@ def convert_matrix_to_map(labels):
             cell_x = col * GRID_WIDTH + GRID_WIDTH / 2
             cell_y = row * GRID_HEIGHT + GRID_HEIGHT / 2
             # Unnormalize values
-            x = int(x * (GRID_WIDTH / 2) + cell_x)
-            y = int(y * (GRID_HEIGHT / 2) + cell_y)
+            x = int(cell_x - (x * (GRID_WIDTH / 2)))
+            y = int(cell_y - (y * (GRID_HEIGHT / 2)))
             w = int(w * MAX_BOX_WIDTH)
             h = int(h * MAX_BOX_HEIGHT)
             box_dict[l].append([x, y, w, h])
@@ -170,14 +169,15 @@ if __name__ == '__main__':
     box_dict = eval(content)
     labels = convert_map_to_matrix(box_dict, S1, S2, T_temp)
     print('labels: ', labels.shape)
-    print(labels[0, 3, 8])
-    print(labels[0, 3, 6])
+    # print(labels[0, 3, 10])
+    # print(labels[0, 3, 8])
+    print('first label: ', labels[0, 3])
     boxes = convert_matrix_to_map(labels)
     print(boxes)
     
-    # ds = HairFollicleDataset('data.hdf5')
-    # index = 0
-    # image = np.transpose(ds[index][0], (1, 2, 0))
-    # boxed_image = draw_boxes(image, boxes[index])
-    # plt.imshow(boxed_image)
-    # plt.show()
+    ds = HairFollicleDataset('data.hdf5')
+    index = 0
+    image = np.transpose(ds[index][0], (1, 2, 0))
+    boxed_image = draw_boxes(image, boxes[index])
+    plt.imshow(boxed_image)
+    plt.show()
