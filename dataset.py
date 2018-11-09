@@ -140,6 +140,8 @@ def convert_matrix_to_map(labels):
 
     for l, label in enumerate(labels):
         indices = np.nonzero(label)
+        if l == 0:
+            print('nonzero indices: ', indices, len(indices))
         for i in range(0, len(indices[0]), 5):
             row = indices[0][i]
             col = indices[1][i]
@@ -158,6 +160,36 @@ def convert_matrix_to_map(labels):
             box_dict[l].append([x, y, w, h])
     return box_dict
 
+def convert_matrix_to_map_2(labels):
+    box_dict = {}
+    for i in range(len(labels)):
+        box_dict[i] = []
+
+    for l, label in enumerate(labels):
+        num_grid_rows = label.shape[0]
+        num_grid_cols = label.shape[1]
+
+        for row in range(num_grid_rows):
+            for col in range(num_grid_cols):
+                box_vals = label[row, col]
+                for k in range(0, T, 5):
+                    c = box_vals[k + 4]
+                    if c <= CONFIDENCE_THRESHOLD:
+                        continue
+                    x = box_vals[k]
+                    y = box_vals[k + 1]
+                    w = box_vals[k + 2]
+                    h = box_vals[k + 3]
+                    cell_x = col * GRID_WIDTH + GRID_WIDTH / 2
+                    cell_y = row * GRID_HEIGHT + GRID_HEIGHT / 2
+                    # Unnormalize values
+                    x = int(cell_x - (x * (GRID_WIDTH / 2)))
+                    y = int(cell_y - (y * (GRID_HEIGHT / 2)))
+                    w = int(w * MAX_BOX_WIDTH)
+                    h = int(h * MAX_BOX_HEIGHT)
+                    box_dict[l].append([x, y, w, h])
+    return box_dict
+
 if __name__ == '__main__':
     # train_loader, val_loader = get_tv_loaders('data.hdf5', 16)
     # print('val loader: ', val_loader)
@@ -172,7 +204,7 @@ if __name__ == '__main__':
     # print(labels[0, 3, 10])
     # print(labels[0, 3, 8])
     print('first label: ', labels[0, 3])
-    boxes = convert_matrix_to_map(labels)
+    boxes = convert_matrix_to_map_2(labels)
     print(boxes)
     
     ds = HairFollicleDataset('data.hdf5')

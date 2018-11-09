@@ -8,6 +8,7 @@ from model import Hairy
 from constants import *
 
 def predict(model, image):
+    # model.eval()
     output = model(image)
     return output
 
@@ -31,11 +32,11 @@ def main():
     plt_image = np.transpose(ds[index][0], (1, 2, 0))
     image = torch.unsqueeze(torch.from_numpy(ds[index][0]), 0)
     print('image size: ', image.size())
-    output = predict(model, image)
-    print('model output: ', output)
-    boxes = convert_matrix_to_map(output)
+    output = predict(model, image).permute(0, 2, 3, 1)
+    print('model output: ', output, output.size())
+    boxes = convert_matrix_to_map_2(output.detach().numpy())
     print('BOXES: ', boxes)
-    boxed_image = draw_boxes(plt_image, boxes)
+    boxed_image = draw_boxes(plt_image, boxes[index])
     plt.imshow(boxed_image)
     plt.show()
 
