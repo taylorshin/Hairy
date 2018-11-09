@@ -1,7 +1,7 @@
 import numpy as np
-import torch
 import matplotlib.pyplot as plt
 import argparse
+import torch
 import torch.nn as nn
 import torch.optim as optim
 from tqdm import tqdm

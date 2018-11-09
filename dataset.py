@@ -33,7 +33,8 @@ class HairFollicleDataset(Dataset):
             # TODO: add back empty arrays for img 33 and 173 in txt file
             # start = time.time()
             # Value returns ndarray from HDF5 data. It also speeds up data loading.
-            self.data = np.asarray([hfile[k].value for k in keys], 'float32')
+            # CROP 2 PIXELS FROM LEFT AND RIGHT
+            self.data = np.asarray([hfile[k].value[:, 2:-2, :] for k in keys], 'float32')
             self.data = np.transpose(self.data, (0, 3, 1, 2))
             # end = time.time()
             # print('Time elapsed: ', end - start)
@@ -42,7 +43,7 @@ class HairFollicleDataset(Dataset):
             tfile = open('image_boxes.txt', 'r')
             content = tfile.read()
             box_dict = eval(content)
-            self.labels = convert_boxes_to_labels(box_dict, S1, S2, T)
+            self.labels = convert_map_to_matrix(box_dict, S1, S2, T_temp)
         except Exception as e:
             print('Unable to load the data.', e)
         
@@ -87,12 +88,11 @@ def validation_split(ds, split=0.2):
 
     return train_set, val_set
 
-def convert_boxes_to_labels(box_dict, width, height, depth):
+def convert_map_to_matrix(box_dict, width, height, depth):
     """
     Takes in bounding boxes (dict) extracted from processed data and converts them into a label matrix.
     """
     n = len(box_dict)
-    t = B * (5 + C)
     labels = np.zeros((n, width, height, depth))
     # TODO: Remove this special code for missing data in old dataset
     i = 0
@@ -130,9 +130,9 @@ def convert_boxes_to_labels(box_dict, width, height, depth):
 
     return labels
 
-def convert_labels_to_boxes(labels):
+def convert_matrix_to_map(labels):
     """
-    Test if convert_boxes_to_labels function works
+    Inverse of convert_map_to_matrix function
     """
     box_dict = {}
     for i in range(len(labels)):
@@ -140,7 +140,8 @@ def convert_labels_to_boxes(labels):
 
     for l, label in enumerate(labels):
         indices = np.nonzero(label)
-        for i in range(0, len(indices[0]), 5):
+        # for i in range(0, len(indices[0]), 5):
+        for i in range(0, T, 5):
             row = indices[0][i]
             col = indices[1][i]
             x = label[row, col, indices[2][i]]
@@ -167,15 +168,16 @@ if __name__ == '__main__':
     tfile = open('image_boxes.txt', 'r')
     content = tfile.read()
     box_dict = eval(content)
-    labels = convert_boxes_to_labels(box_dict)
+    labels = convert_map_to_matrix(box_dict, S1, S2, T_temp)
+    print('labels: ', labels.shape)
     print(labels[0, 3, 8])
     print(labels[0, 3, 6])
-    boxes = convert_labels_to_boxes(labels)
+    boxes = convert_matrix_to_map(labels)
     print(boxes)
     
-    ds = HairFollicleDataset('data.hdf5')
-    index = 0
-    image = np.transpose(ds[index], (1, 2, 0))
-    boxed_image = draw_boxes(image, boxes[index])
-    plt.imshow(boxed_image)
-    plt.show()
+    # ds = HairFollicleDataset('data.hdf5')
+    # index = 0
+    # image = np.transpose(ds[index][0], (1, 2, 0))
+    # boxed_image = draw_boxes(image, boxes[index])
+    # plt.imshow(boxed_image)
+    # plt.show()

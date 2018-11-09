@@ -9,10 +9,10 @@ class Hairy(nn.Module):
         super().__init__()
         self.pool = nn.MaxPool2d(2, 2)
         self.conv1 = nn.Conv2d(3, 32, 7)
-        self.conv2 = nn.Conv2d(32, 32, 3)
-        self.conv3 = nn.Conv2d(32, 32, 3)
-        self.conv4 = nn.Conv2d(32, 32, 3)
-        self.conv5 = nn.Conv2d(32, 32, 3)
+        self.conv2 = nn.Conv2d(32, 32, 5)
+        self.conv3 = nn.Conv2d(32, 32, 5)
+        self.conv4 = nn.Conv2d(32, 32, 5)
+        self.conv5 = nn.Conv2d(32, 32, 5)
         self.conv6 = nn.Conv2d(32, 32, 3)
 
     def forward(self, x):
@@ -28,8 +28,4 @@ class Hairy(nn.Module):
         print('after 5th conv layer: ', x.size())
         x = self.pool(F.relu(self.conv6(x)))
         print('after 6th conv layer: ', x.size())
-        # TODO: fix this hacky solution
-        # x = x[:, :, :, :-1]
-        # print('after hax: ', x.size())
-        # x = x.view(-1, 16 * 5 * 5)
         return x
