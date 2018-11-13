@@ -99,6 +99,9 @@ def main():
 
     print('Loading data...')
     train_loader, val_loader = get_tv_loaders('data.hdf5', args.batch_size)
+    # Save test data indices for predict to use
+    # for data in val_loader:
+    #     print(data)
     print('Data loaded.')
     print('Training has started.')
     train(model, device, train_loader, val_loader, optimizer, False)

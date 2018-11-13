@@ -55,6 +55,9 @@ class HairFollicleDataset(Dataset):
         y = self.labels[index]
         return x, y
 
+def sigmoid(x):
+    return 1 / (1 + math.exp(-x))
+
 def get_tv_loaders(filename, batch_size):
     ds = HairFollicleDataset(filename)
     train_set, val_set = validation_split(ds)
@@ -173,6 +176,7 @@ def convert_matrix_to_map_2(labels):
             for col in range(num_grid_cols):
                 box_vals = label[row, col]
                 for k in range(0, T, 5):
+                    # objectiveness function is passed into sigmoid?
                     c = box_vals[k + 4]
                     if c <= CONFIDENCE_THRESHOLD:
                         continue
@@ -180,13 +184,20 @@ def convert_matrix_to_map_2(labels):
                     y = box_vals[k + 1]
                     w = box_vals[k + 2]
                     h = box_vals[k + 3]
-                    cell_x = col * GRID_WIDTH + GRID_WIDTH / 2
-                    cell_y = row * GRID_HEIGHT + GRID_HEIGHT / 2
+                    cell_topleft_x = col * GRID_WIDTH
+                    cell_topleft_y = row * GRID_HEIGHT
+                    cell_center_x = cell_topleft_x + GRID_WIDTH / 2
+                    cell_center_y = cell_topleft_y + GRID_HEIGHT / 2
                     # Unnormalize values
-                    x = int(cell_x - (x * (GRID_WIDTH / 2)))
-                    y = int(cell_y - (y * (GRID_HEIGHT / 2)))
-                    w = int(w * MAX_BOX_WIDTH)
-                    h = int(h * MAX_BOX_HEIGHT)
+                    # x = int(cell_center_x - (x * (GRID_WIDTH / 2)))
+                    # y = int(cell_center_y - (y * (GRID_HEIGHT / 2)))
+                    # w = int(w * MAX_BOX_WIDTH)
+                    # h = int(h * MAX_BOX_HEIGHT)
+                    # Transform network outputs
+                    x = sigmoid(x) + cell_topleft_x
+                    y = sigmoid(y) + cell_topleft_y
+                    w = MAX_BOX_WIDTH * math.exp(w)
+                    h = MAX_BOX_HEIGHT * math.exp(h)
                     box_dict[l].append([x, y, w, h])
     return box_dict
 
