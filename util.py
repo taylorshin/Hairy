@@ -25,5 +25,5 @@ if __name__ == '__main__':
     index = 0
     image = np.transpose(ds[index][0], (1, 2, 0))
     boxed_image = draw_boxes(image, boxes[index + 1])
-    plt.imshow(boxed_image)
+    plt.imshow(image)
     plt.show()

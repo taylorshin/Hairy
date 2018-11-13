@@ -36,7 +36,9 @@ def main():
     output = predict(model, image).permute(0, 2, 3, 1)
     print('model output: ', output[0, 0, 0], output.size())
 
-    boxes = convert_matrix_to_map_2(output.detach().numpy())
+    # Transform network output to obtain bounding box predictions
+    transformed_output = transform_network_output(output.detach().numpy())
+    boxes = convert_matrix_to_map(transformed_output)
     print('BOXES: ', boxes)
     boxed_image = draw_boxes(plt_image, boxes[index])
     plt.imshow(boxed_image)

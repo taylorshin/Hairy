@@ -134,36 +134,6 @@ def convert_map_to_matrix(box_dict, width, height, depth):
     return labels
 
 def convert_matrix_to_map(labels):
-    """
-    Inverse of convert_map_to_matrix function
-    """
-    box_dict = {}
-    for i in range(len(labels)):
-        box_dict[i] = []
-
-    for l, label in enumerate(labels):
-        indices = np.nonzero(label)
-        if l == 0:
-            print('nonzero indices: ', indices, len(indices))
-        for i in range(0, len(indices[0]), 5):
-            row = indices[0][i]
-            col = indices[1][i]
-            x = label[row, col, indices[2][i]]
-            y = label[indices[0][i + 1], indices[1][i + 1], indices[2][i + 1]]
-            w = label[indices[0][i + 2], indices[1][i + 2], indices[2][i + 2]]
-            h = label[indices[0][i + 3], indices[1][i + 3], indices[2][i + 3]]
-            # c = label[indices[0][i + 4], indices[1][i + 4], indices[2][i + 4]]
-            cell_x = col * GRID_WIDTH + GRID_WIDTH / 2
-            cell_y = row * GRID_HEIGHT + GRID_HEIGHT / 2
-            # Unnormalize values
-            x = int(cell_x - (x * (GRID_WIDTH / 2)))
-            y = int(cell_y - (y * (GRID_HEIGHT / 2)))
-            w = int(w * MAX_BOX_WIDTH)
-            h = int(h * MAX_BOX_HEIGHT)
-            box_dict[l].append([x, y, w, h])
-    return box_dict
-
-def convert_matrix_to_map_2(labels):
     box_dict = {}
     for i in range(len(labels)):
         box_dict[i] = []
@@ -176,7 +146,6 @@ def convert_matrix_to_map_2(labels):
             for col in range(num_grid_cols):
                 box_vals = label[row, col]
                 for k in range(0, T, 5):
-                    # objectiveness function is passed into sigmoid?
                     c = box_vals[k + 4]
                     if c <= CONFIDENCE_THRESHOLD:
                         continue
@@ -193,13 +162,48 @@ def convert_matrix_to_map_2(labels):
                     # y = int(cell_center_y - (y * (GRID_HEIGHT / 2)))
                     # w = int(w * MAX_BOX_WIDTH)
                     # h = int(h * MAX_BOX_HEIGHT)
-                    # Transform network outputs
-                    x = sigmoid(x) + cell_topleft_x
-                    y = sigmoid(y) + cell_topleft_y
-                    w = MAX_BOX_WIDTH * math.exp(w)
-                    h = MAX_BOX_HEIGHT * math.exp(h)
                     box_dict[l].append([x, y, w, h])
     return box_dict
+
+def transform_network_output(output):
+    print('before: ', output)
+    for i, img in enumerate(output):
+        num_grid_rows = img.shape[0]
+        num_grid_cols = img.shape[1]
+
+        for row in range(num_grid_rows):
+            for col in range(num_grid_cols):
+                box_vals = img[row, col]
+                for k in range(0, T, 5):
+                    x = box_vals[k]
+                    y = box_vals[k + 1]
+                    w = box_vals[k + 2]
+                    h = box_vals[k + 3]
+                    c = box_vals[k + 4]
+
+                    cell_topleft_x = col * GRID_WIDTH
+                    cell_topleft_y = row * GRID_HEIGHT
+                    cell_center_x = cell_topleft_x + GRID_WIDTH / 2
+                    cell_center_y = cell_topleft_y + GRID_HEIGHT / 2
+
+                    # Transform network outputs
+                    if x > 0:
+                        x = sigmoid(x) + cell_topleft_x
+                        box_vals[k] = x
+                    if y > 0:
+                        y = sigmoid(y) + cell_topleft_y
+                        box_vals[k + 1] = y
+                    if w > 0:
+                        w = MAX_BOX_WIDTH * math.exp(w)
+                        box_vals[k + 2] = w
+                    if h > 0:
+                        h = MAX_BOX_HEIGHT * math.exp(h)
+                        box_vals[k + 3] = h
+                    if c > 0:
+                        c = sigmoid(c)
+                        box_vals[k + 4] = c
+    print('after: ', output)
+    return output
 
 if __name__ == '__main__':
     # train_loader, val_loader = get_tv_loaders('data.hdf5', 16)
@@ -215,7 +219,7 @@ if __name__ == '__main__':
     # print(labels[0, 3, 10])
     # print(labels[0, 3, 8])
     print('first label: ', labels[0, 3])
-    boxes = convert_matrix_to_map_2(labels)
+    boxes = convert_matrix_to_map(labels)
     print(boxes)
     
     ds = HairFollicleDataset('data.hdf5')
