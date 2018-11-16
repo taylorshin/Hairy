@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import argparse
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
 from tqdm import tqdm
 from dataset import *
@@ -16,7 +17,7 @@ def plot_graph(training_loss, name):
     plt.plot(training_loss)
     plt.savefig(OUT_DIR + '/' + name)
 
-def train(model, device, train_loader, val_loader, optimizer, plot=True):
+def train(args, model, device, train_loader, val_loader, optimizer, plot=True):
     model_save = model
     # Number of training steps per epoch
     epoch = 1
@@ -36,11 +37,15 @@ def train(model, device, train_loader, val_loader, optimizer, plot=True):
             t.set_description('Epoch {}'.format(epoch))
 
             for data in t:
+                _, labels = data
+                # Baseline MSE for current batch
+                base_loss = F.mse_loss(labels, torch.zeros((args.batch_size, S1, S2, T), dtype=torch.double)).item()
+
                 metrics = train_step(model, optimizer, device, data, total_step)
 
                 total_metrics += metrics
                 avg_metrics = total_metrics / step
-                t.set_postfix(loss=avg_metrics[0])
+                t.set_postfix(loss=avg_metrics[0], base=base_loss)
 
                 step += 1
                 total_step += 1
@@ -104,7 +109,7 @@ def main():
     #     print(data)
     print('Data loaded.')
     print('Training has started.')
-    train(model, device, train_loader, val_loader, optimizer, False)
+    train(args, model, device, train_loader, val_loader, optimizer, False)
 
 if __name__ == '__main__':
     main()

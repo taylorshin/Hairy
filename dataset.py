@@ -43,7 +43,7 @@ class HairFollicleDataset(Dataset):
             tfile = open('image_boxes.txt', 'r')
             content = tfile.read()
             box_dict = eval(content)
-            self.labels = convert_map_to_matrix(box_dict, S1, S2, T_temp)
+            self.labels = convert_map_to_matrix(box_dict)
         except Exception as e:
             print('Unable to load the data.', e)
         
@@ -56,7 +56,7 @@ class HairFollicleDataset(Dataset):
         return x, y
 
 def sigmoid(x):
-    return 1 / (1 + math.exp(-x))
+    return 1.0 / (1.0 + np.exp(-x))
 
 def get_tv_loaders(filename, batch_size):
     ds = HairFollicleDataset(filename)
@@ -91,12 +91,12 @@ def validation_split(ds, split=0.2):
 
     return train_set, val_set
 
-def convert_map_to_matrix(box_dict, width, height, depth):
+def convert_map_to_matrix(box_dict):
     """
     Takes in bounding boxes (dict) extracted from processed data and converts them into a label matrix.
     """
     n = len(box_dict)
-    labels = np.zeros((n, width, height, depth))
+    labels = np.zeros((n, S1, S2, T))
     # TODO: Remove this special code for missing data in old dataset
     i = 0
     # for i, boxes in box_dict.items():
@@ -117,9 +117,9 @@ def convert_map_to_matrix(box_dict, width, height, depth):
             # Relative y
             box_data[j * 5 + 1] = cell_y - y
             # Width
-            box_data[j * 5 + 2] = w
+            box_data[j * 5 + 2] = MAX_BOX_WIDTH - w
             # Height
-            box_data[j * 5 + 3] = h
+            box_data[j * 5 + 3] = MAX_BOX_HEIGHT - h
             # Confidence level
             box_data[j * 5 + 4] = 1
         # TODO: Remove this special code for missing data in old dataset
@@ -146,26 +146,31 @@ def convert_matrix_to_map(labels):
             for col in range(num_grid_cols):
                 box_vals = label[row, col]
                 for k in range(0, T, 5):
-                    c = box_vals[k + 4]
+                    print('before: ', box_vals[k + 4])
+                    c = (np.tanh(box_vals[k + 4]) + 1) / 2
+                    print('after: ', c)
                     if c <= CONFIDENCE_THRESHOLD:
                         continue
-                    x = box_vals[k]
-                    y = box_vals[k + 1]
-                    w = box_vals[k + 2]
-                    h = box_vals[k + 3]
+                    x = np.tanh(box_vals[k])
+                    y = np.tanh(box_vals[k + 1])
+                    w = sigmoid(box_vals[k + 2])
+                    h = sigmoid(box_vals[k + 3])
                     cell_topleft_x = col * GRID_WIDTH
                     cell_topleft_y = row * GRID_HEIGHT
                     cell_center_x = cell_topleft_x + GRID_WIDTH / 2
                     cell_center_y = cell_topleft_y + GRID_HEIGHT / 2
                     # Unnormalize values
-                    # x = int(cell_center_x - (x * (GRID_WIDTH / 2)))
-                    # y = int(cell_center_y - (y * (GRID_HEIGHT / 2)))
-                    # w = int(w * MAX_BOX_WIDTH)
-                    # h = int(h * MAX_BOX_HEIGHT)
+                    x = int(cell_center_x - (x * (GRID_WIDTH / 2)))
+                    y = int(cell_center_y - (y * (GRID_HEIGHT / 2)))
+                    w = int(MAX_BOX_WIDTH - w * MAX_BOX_WIDTH)
+                    h = int(MAX_BOX_HEIGHT - h * MAX_BOX_HEIGHT)
                     box_dict[l].append([x, y, w, h])
     return box_dict
 
 def transform_network_output(output):
+    """
+    Transform network output in order to predict bounding boxes
+    """
     print('before: ', output)
     for i, img in enumerate(output):
         num_grid_rows = img.shape[0]
@@ -214,7 +219,7 @@ if __name__ == '__main__':
     tfile = open('image_boxes.txt', 'r')
     content = tfile.read()
     box_dict = eval(content)
-    labels = convert_map_to_matrix(box_dict, S1, S2, T_temp)
+    labels = convert_map_to_matrix(box_dict)
     print('labels: ', labels.shape)
     # print(labels[0, 3, 10])
     # print(labels[0, 3, 8])

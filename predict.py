@@ -20,6 +20,7 @@ def main():
     print('Model path: {}'.format(args.model))
 
     model = Hairy()
+    model.eval()
 
     if args.model:
         model.load_state_dict(torch.load(args.model))
@@ -37,8 +38,9 @@ def main():
     print('model output: ', output[0, 0, 0], output.size())
 
     # Transform network output to obtain bounding box predictions
-    transformed_output = transform_network_output(output.detach().numpy())
-    boxes = convert_matrix_to_map(transformed_output)
+    # transformed_output = transform_network_output(output.detach().numpy())
+    # boxes = convert_matrix_to_map(transformed_output)
+    boxes = convert_matrix_to_map(output.detach().numpy())
     print('BOXES: ', boxes)
     boxed_image = draw_boxes(plt_image, boxes[index])
     plt.imshow(boxed_image)
