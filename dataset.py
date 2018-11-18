@@ -4,6 +4,8 @@ import random
 import numpy as np
 import h5py
 import torch
+import torchvision
+import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
 from torch.utils.data import Dataset
 from constants import *
@@ -36,6 +38,7 @@ class HairFollicleDataset(Dataset):
             # CROP 2 PIXELS FROM LEFT AND RIGHT
             self.data = np.asarray([hfile[k].value[:, 2:-2, :] for k in keys], 'float32')
             self.data = np.transpose(self.data, (0, 3, 1, 2))
+            # TODO: Normalize pixels to between -1 and 1
             # end = time.time()
             # print('Time elapsed: ', end - start)
             # plt.imshow(self.data[0])
@@ -108,28 +111,37 @@ def convert_map_to_matrix(box_dict):
             row = y // GRID_HEIGHT
             col = x // GRID_WIDTH
             # Grid cell center position
-            cell_x = col * GRID_WIDTH + GRID_WIDTH / 2
-            cell_y = row * GRID_HEIGHT + GRID_HEIGHT / 2
+            # cell_x = col * GRID_WIDTH + GRID_WIDTH / 2
+            # cell_y = row * GRID_HEIGHT + GRID_HEIGHT / 2
+            # Grid cell top left position
+            cell_x = col * GRID_WIDTH
+            cell_y = row * GRID_HEIGHT
             # B * (5 + C) vector
             box_data = img[row, col]
             # Relative x from the center of the grid cell
-            box_data[j * 5] = cell_x - x
+            # box_data[j * 5] = cell_x - x
+            # Relative x from the top left corner of the grid cell
+            box_data[j * 5] = x - cell_x
             # Relative y
-            box_data[j * 5 + 1] = cell_y - y
+            # box_data[j * 5 + 1] = cell_y - y
+            box_data[j * 5 + 1] = y - cell_y
             # Width
-            box_data[j * 5 + 2] = MAX_BOX_WIDTH - w
+            box_data[j * 5 + 2] = w
             # Height
-            box_data[j * 5 + 3] = MAX_BOX_HEIGHT - h
+            box_data[j * 5 + 3] = h
             # Confidence level
             box_data[j * 5 + 4] = 1
         # TODO: Remove this special code for missing data in old dataset
         i += 1
-    # Relative x's are normalized by half the grid cell size
-    labels[:, :, :, 0::5] = labels[:, :, :, 0::5] / (GRID_WIDTH / 2)
-    labels[:, :, :, 1::5] = labels[:, :, :, 1::5] / (GRID_HEIGHT / 2)
-    # Width and height are normalized by the corresponding max values (set to 500 for now)
-    labels[:, :, :, 2::5] = labels[:, :, :, 2::5] / MAX_BOX_WIDTH
-    labels[:, :, :, 3::5] = labels[:, :, :, 3::5] / MAX_BOX_HEIGHT
+    # Relative x and y are normalized by grid cell size
+    # labels[:, :, :, 0::5] = labels[:, :, :, 0::5] / (GRID_WIDTH / 2)
+    labels[:, :, :, 0::5] = labels[:, :, :, 0::5] / GRID_WIDTH
+    # labels[:, :, :, 1::5] = labels[:, :, :, 1::5] / (GRID_HEIGHT / 2)
+    labels[:, :, :, 1::5] = labels[:, :, :, 1::5] / GRID_HEIGHT
+
+    # Normalize bounding box width/height by image width/height
+    labels[:, :, :, 2::5] = labels[:, :, :, 2::5] / IMG_WIDTH
+    labels[:, :, :, 3::5] = labels[:, :, :, 3::5] / IMG_HEIGHT
 
     return labels
 
@@ -142,73 +154,36 @@ def convert_matrix_to_map(labels):
         num_grid_rows = label.shape[0]
         num_grid_cols = label.shape[1]
 
+        # print('C: ', label[:, :, 4::5])
+        max_c = np.max(label[:, :, 4::5])
+        print('MAX C: ', max_c, sigmoid(max_c))
+
         for row in range(num_grid_rows):
             for col in range(num_grid_cols):
                 box_vals = label[row, col]
                 for k in range(0, T, 5):
-                    print('before: ', box_vals[k + 4])
-                    c = (np.tanh(box_vals[k + 4]) + 1) / 2
-                    print('after: ', c)
+                    # print('before: ', box_vals[k + 4])
+                    c = sigmoid(box_vals[k + 4])
+                    # print('after: ', c)
                     if c <= CONFIDENCE_THRESHOLD:
                         continue
-                    x = np.tanh(box_vals[k])
-                    y = np.tanh(box_vals[k + 1])
+                    x = sigmoid(box_vals[k])
+                    y = sigmoid(box_vals[k + 1])
                     w = sigmoid(box_vals[k + 2])
                     h = sigmoid(box_vals[k + 3])
                     cell_topleft_x = col * GRID_WIDTH
                     cell_topleft_y = row * GRID_HEIGHT
-                    cell_center_x = cell_topleft_x + GRID_WIDTH / 2
-                    cell_center_y = cell_topleft_y + GRID_HEIGHT / 2
+                    # cell_center_x = cell_topleft_x + GRID_WIDTH / 2
+                    # cell_center_y = cell_topleft_y + GRID_HEIGHT / 2
                     # Unnormalize values
-                    x = int(cell_center_x - (x * (GRID_WIDTH / 2)))
-                    y = int(cell_center_y - (y * (GRID_HEIGHT / 2)))
-                    w = int(MAX_BOX_WIDTH - w * MAX_BOX_WIDTH)
-                    h = int(MAX_BOX_HEIGHT - h * MAX_BOX_HEIGHT)
+                    # x = int(cell_center_x - (x * (GRID_WIDTH / 2)))
+                    x = int(cell_topleft_x + x * GRID_WIDTH)
+                    # y = int(cell_center_y - (y * (GRID_HEIGHT / 2)))
+                    y = int(cell_topleft_y + y * GRID_HEIGHT)
+                    w = int(w * IMG_WIDTH)
+                    h = int(h * IMG_HEIGHT)
                     box_dict[l].append([x, y, w, h])
     return box_dict
-
-def transform_network_output(output):
-    """
-    Transform network output in order to predict bounding boxes
-    """
-    print('before: ', output)
-    for i, img in enumerate(output):
-        num_grid_rows = img.shape[0]
-        num_grid_cols = img.shape[1]
-
-        for row in range(num_grid_rows):
-            for col in range(num_grid_cols):
-                box_vals = img[row, col]
-                for k in range(0, T, 5):
-                    x = box_vals[k]
-                    y = box_vals[k + 1]
-                    w = box_vals[k + 2]
-                    h = box_vals[k + 3]
-                    c = box_vals[k + 4]
-
-                    cell_topleft_x = col * GRID_WIDTH
-                    cell_topleft_y = row * GRID_HEIGHT
-                    cell_center_x = cell_topleft_x + GRID_WIDTH / 2
-                    cell_center_y = cell_topleft_y + GRID_HEIGHT / 2
-
-                    # Transform network outputs
-                    if x > 0:
-                        x = sigmoid(x) + cell_topleft_x
-                        box_vals[k] = x
-                    if y > 0:
-                        y = sigmoid(y) + cell_topleft_y
-                        box_vals[k + 1] = y
-                    if w > 0:
-                        w = MAX_BOX_WIDTH * math.exp(w)
-                        box_vals[k + 2] = w
-                    if h > 0:
-                        h = MAX_BOX_HEIGHT * math.exp(h)
-                        box_vals[k + 3] = h
-                    if c > 0:
-                        c = sigmoid(c)
-                        box_vals[k + 4] = c
-    print('after: ', output)
-    return output
 
 if __name__ == '__main__':
     # train_loader, val_loader = get_tv_loaders('data.hdf5', 16)
