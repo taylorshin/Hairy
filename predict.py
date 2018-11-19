@@ -8,7 +8,7 @@ from model import Hairy
 from constants import *
 
 def predict(model, image):
-    # model.eval()
+    model.eval()
     output = model(image)
     return output
 
@@ -20,7 +20,7 @@ def main():
     print('Model path: {}'.format(args.model))
 
     model = Hairy()
-    model.eval()
+    # model.eval()
 
     if args.model:
         model.load_state_dict(torch.load(args.model))
@@ -29,20 +29,22 @@ def main():
 
     # print('Loading data...')
     ds = HairFollicleDataset('data.hdf5')
-    index = 0
-    plt_image = np.transpose(ds[index][0], (1, 2, 0))
-    image = torch.unsqueeze(torch.from_numpy(ds[index][0]), 0)
-    print('image size: ', image.size())
+    index = 3
+    data_point = ds[index][0]
+    plt_image = np.transpose(data_point, (1, 2, 0))
+    # plt.imshow(plt_image)
+    # plt.show()
+    image = torch.unsqueeze(torch.from_numpy(data_point), 0)
 
     output = predict(model, image).permute(0, 2, 3, 1)
-    print('model output: ', output[0, 0, 0], output.size())
+    # print('model output: ', output[0, 0, 0], output.size())
 
     # Transform network output to obtain bounding box predictions
     # transformed_output = transform_network_output(output.detach().numpy())
     # boxes = convert_matrix_to_map(transformed_output)
     boxes = convert_matrix_to_map(output.detach().numpy())
     print('BOXES: ', boxes)
-    boxed_image = draw_boxes(plt_image, boxes[index])
+    boxed_image = draw_boxes(plt_image, boxes[0])
     plt.imshow(boxed_image)
     plt.show()
 
