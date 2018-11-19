@@ -6,6 +6,7 @@ from tqdm import tqdm
 from dataset import *
 from model import Hairy
 from constants import *
+from util import *
 
 def predict(model, image):
     model.eval()
@@ -29,7 +30,7 @@ def main():
 
     # print('Loading data...')
     ds = HairFollicleDataset('data.hdf5')
-    index = 3
+    index = 0
     data_point = ds[index][0]
     plt_image = np.transpose(data_point, (1, 2, 0))
     # plt.imshow(plt_image)
@@ -44,6 +45,16 @@ def main():
     # boxes = convert_matrix_to_map(transformed_output)
     boxes = convert_matrix_to_map(output.detach().numpy())
     print('BOXES: ', boxes)
+
+    # IOU
+    tfile = open('image_boxes.txt', 'r')
+    content = tfile.read()
+    box_dict = eval(content)
+    ground_truth_box = (box_dict[1])[0]
+    predicted_box = (boxes[0])[0]
+    first_box_iou = bb_iou(predicted_box, ground_truth_box)
+    print('IOU: ', first_box_iou)
+
     boxed_image = draw_boxes(plt_image, boxes[0])
     plt.imshow(boxed_image)
     plt.show()

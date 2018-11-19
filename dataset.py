@@ -31,13 +31,11 @@ class HairFollicleDataset(Dataset):
 
         try:
             hfile = h5py.File(filename, 'r')
-            # keys = list(hfile.keys())
             keys = sorted(list(hfile.keys()), key=lambda k: int(k))
             # TODO: add back empty arrays for img 33 and 173 in txt file
             # start = time.time()
             # Value returns ndarray from HDF5 data. It also speeds up data loading.
             # CROP 2 PIXELS FROM LEFT AND RIGHT
-            print('KEYS: ', keys)
             self.data = np.asarray([hfile[k].value[:, 2:-2, :] for k in keys], 'float32')
             self.data = np.transpose(self.data, (0, 3, 1, 2))
             # TODO: Normalize pixels to between -1 and 1
@@ -59,9 +57,6 @@ class HairFollicleDataset(Dataset):
         x = self.data[index]
         y = self.labels[index]
         return x, y
-
-def sigmoid(x):
-    return 1.0 / (1.0 + np.exp(-x))
 
 def get_tv_loaders(filename, batch_size):
     ds = HairFollicleDataset(filename)
