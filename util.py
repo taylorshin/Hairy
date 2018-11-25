@@ -20,17 +20,30 @@ def draw_boxes(image, boxes):
     return image
 
 def bb_iou(box1, box2):
-    x1 = max(box1[0], box2[0])
-    y1 = max(box1[1], box2[1])
-    x2 = min(box1[2], box2[2])
-    y2 = min(box1[3], box2[3])
+    # Compute min and max of x and y values from both boxes
+    x_min = min(box1[0] - box1[2] / 2.0, box2[0] - box2[2] / 2.0)
+    x_max = max(box1[0] + box1[2] / 2.0, box2[0] + box2[2] / 2.0)
+    y_min = min(box1[1] - box1[3] / 2.0, box2[1] - box2[3] / 2.0)
+    y_max = max(box1[1] + box1[3] / 2.0, box2[1] + box2[3] / 2.0)
+    w1 = box1[2]
+    h1 = box1[3]
+    w2 = box2[2]
+    h2 = box2[3]
+
+    w_union = x_max - x_min
+    h_union = y_max - y_min
+    w_intersect = w1 + w2 - w_union
+    h_intersect = h1 + h2 - h_union
+
+    if w_intersect <= 0 or h_intersect <= 0:
+        return 0.0
 
     # Area of intersection rectangle
-    intersect_area = (x2 - x1) * (y2 - y1)
+    intersect_area = w_intersect * h_intersect
 
     # Compute area of prediction and ground truth boxes
-    box1_area = (box1[2] - box1[0]) * (box1[3] - box1[1])
-    box2_area = (box2[2] - box2[0]) * (box2[3] - box2[1])
+    box1_area = w1 * h1
+    box2_area = w2 * h2
 
     # Compute intersection over union
     iou = intersect_area / float(box1_area + box2_area - intersect_area)

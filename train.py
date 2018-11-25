@@ -75,7 +75,10 @@ def train_step(model, optimizer, device, data, total_step):
 
     # Forward pass -> backward pass -> optimize
     outputs = model(inputs)
-    loss = criterion(outputs.permute(0, 2, 3, 1), labels.float())
+    # Transform network outputs
+    # outputs = torch.sigmoid(outputs)
+    # loss = criterion(outputs.permute(0, 2, 3, 1), labels.float())
+    loss = criterion(outputs, labels.float())
     loss.backward()
     optimizer.step()
 

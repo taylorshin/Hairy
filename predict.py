@@ -38,10 +38,11 @@ def main():
     image = torch.unsqueeze(torch.from_numpy(data_point), 0)
 
     output = predict(model, image).permute(0, 2, 3, 1)
-    # print('model output: ', output[0, 0, 0], output.size())
+    print('model output: ', output, output.size())
 
     # Transform network output to obtain bounding box predictions
     # transformed_output = transform_network_output(output.detach().numpy())
+    # print('transform output: ', transformed_output)
     # boxes = convert_matrix_to_map(transformed_output)
     boxes = convert_matrix_to_map(output.detach().numpy())
     print('BOXES: ', boxes)
@@ -50,10 +51,10 @@ def main():
     tfile = open('image_boxes.txt', 'r')
     content = tfile.read()
     box_dict = eval(content)
-    ground_truth_box = (box_dict[1])[0]
-    predicted_box = (boxes[0])[0]
-    first_box_iou = bb_iou(predicted_box, ground_truth_box)
-    print('IOU: ', first_box_iou)
+    # ground_truth_box = (box_dict[1])[0]
+    # predicted_box = (boxes[0])[0]
+    # first_box_iou = bb_iou(predicted_box, ground_truth_box)
+    # print('IOU: ', first_box_iou)
 
     boxed_image = draw_boxes(plt_image, boxes[0])
     plt.imshow(boxed_image)

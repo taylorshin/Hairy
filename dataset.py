@@ -33,14 +33,12 @@ class HairFollicleDataset(Dataset):
             hfile = h5py.File(filename, 'r')
             keys = sorted(list(hfile.keys()), key=lambda k: int(k))
             # TODO: add back empty arrays for img 33 and 173 in txt file
-            # start = time.time()
             # Value returns ndarray from HDF5 data. It also speeds up data loading.
             # CROP 2 PIXELS FROM LEFT AND RIGHT
             self.data = np.asarray([hfile[k].value[:, 2:-2, :] for k in keys], 'float32')
             self.data = np.transpose(self.data, (0, 3, 1, 2))
-            # TODO: Normalize pixels to between -1 and 1
-            # end = time.time()
-            # print('Time elapsed: ', end - start)
+            # Normalize pixels values to [0, 1]
+            self.data = self.data / 255
             # plt.imshow(self.data[0])
             # plt.show()
             tfile = open('image_boxes.txt', 'r')
@@ -118,24 +116,21 @@ def convert_map_to_matrix(box_dict):
             # Relative x from the center of the grid cell
             # box_data[j * 5] = cell_x - x
             # Relative x from the top left corner of the grid cell
-            box_data[j * 5] = x - cell_x
+            box_data[0] = x - cell_x
             # Relative y
             # box_data[j * 5 + 1] = cell_y - y
-            box_data[j * 5 + 1] = y - cell_y
+            box_data[1] = y - cell_y
             # Width
-            box_data[j * 5 + 2] = w
+            box_data[2] = w
             # Height
-            box_data[j * 5 + 3] = h
+            box_data[3] = h
             # Confidence level
-            box_data[j * 5 + 4] = 1
+            box_data[4] = 1
         # TODO: Remove this special code for missing data in old dataset
         i += 1
     # Relative x and y are normalized by grid cell size
-    # labels[:, :, :, 0::5] = labels[:, :, :, 0::5] / (GRID_WIDTH / 2)
     labels[:, :, :, 0::5] = labels[:, :, :, 0::5] / GRID_WIDTH
-    # labels[:, :, :, 1::5] = labels[:, :, :, 1::5] / (GRID_HEIGHT / 2)
     labels[:, :, :, 1::5] = labels[:, :, :, 1::5] / GRID_HEIGHT
-
     # Normalize bounding box width/height by image width/height
     labels[:, :, :, 2::5] = labels[:, :, :, 2::5] / IMG_WIDTH
     labels[:, :, :, 3::5] = labels[:, :, :, 3::5] / IMG_HEIGHT
@@ -153,21 +148,21 @@ def convert_matrix_to_map(labels):
 
         # print('C: ', label[:, :, 4::5])
         max_c = np.max(label[:, :, 4::5])
-        print('MAX C: ', max_c, sigmoid(max_c))
+        print('MAX C - raw: {}, sigmoid: {}'.format(max_c, sigmoid(max_c)))
 
         for row in range(num_grid_rows):
             for col in range(num_grid_cols):
                 box_vals = label[row, col]
                 for k in range(0, T, 5):
                     # print('before: ', box_vals[k + 4])
-                    c = sigmoid(box_vals[k + 4])
+                    c = (box_vals[k + 4])
                     # print('after: ', c)
                     if c <= CONFIDENCE_THRESHOLD:
                         continue
-                    x = sigmoid(box_vals[k])
-                    y = sigmoid(box_vals[k + 1])
-                    w = sigmoid(box_vals[k + 2])
-                    h = sigmoid(box_vals[k + 3])
+                    x = (box_vals[k])
+                    y = (box_vals[k + 1])
+                    w = (box_vals[k + 2])
+                    h = (box_vals[k + 3])
                     cell_topleft_x = col * GRID_WIDTH
                     cell_topleft_y = row * GRID_HEIGHT
                     # cell_center_x = cell_topleft_x + GRID_WIDTH / 2
@@ -182,25 +177,25 @@ def convert_matrix_to_map(labels):
                     box_dict[l].append([x, y, w, h])
     return box_dict
 
+def transform_network_output(output):
+    sig = lambda x: sigmoid(x)
+    v_fun = np.vectorize(sig)
+    return v_fun(output)
+
 if __name__ == '__main__':
-    # train_loader, val_loader = get_tv_loaders('data.hdf5', 16)
-    # print('val loader: ', val_loader)
-    # for data in val_loader:
-    #     # NOTE: printing data from a dataloader is slow
-    #     print(data)
     tfile = open('image_boxes.txt', 'r')
     content = tfile.read()
     box_dict = eval(content)
     labels = convert_map_to_matrix(box_dict)
     print('labels: ', labels.shape)
-    # print(labels[0, 3, 10])
-    # print(labels[0, 3, 8])
+    print('first box: ', labels[0, 3, 10])
+    print('second box: ', labels[0, 3, 8])
     print('first label: ', labels[0, 3])
     boxes = convert_matrix_to_map(labels)
     print(boxes)
     
     ds = HairFollicleDataset('data.hdf5')
-    index = 11
+    index = 0
     image = np.transpose(ds[index][0], (1, 2, 0))
     boxed_image = draw_boxes(image, boxes[index])
     plt.imshow(boxed_image)
