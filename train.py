@@ -10,7 +10,7 @@ from dataset import *
 from model import Hairy
 from constants import *
 
-criterion = nn.MSELoss()
+# criterion = nn.MSELoss()
 
 def plot_graph(training_loss, name):
     plt.clf()
@@ -45,7 +45,8 @@ def train(args, model, device, train_loader, val_loader, optimizer, plot=True):
 
                 total_metrics += metrics
                 avg_metrics = total_metrics / step
-                t.set_postfix(loss=avg_metrics[0], base=base_loss)
+                # t.set_postfix(loss=avg_metrics[0], base=base_loss)
+                t.set_postfix(loss=avg_metrics[0])
 
                 step += 1
                 total_step += 1
@@ -78,9 +79,10 @@ def train_step(model, optimizer, device, data, total_step):
     # Transform network outputs
     # outputs = torch.sigmoid(outputs)
     # loss = criterion(outputs.permute(0, 2, 3, 1), labels.float())
-    loss = criterion(outputs, labels.float())
+    # loss = criterion(outputs, labels.float())
     # YOLO
-    y_loss = yolo_loss(outputs, labels)
+    # y_true is a DoubleTensor so convert it to FloatTensor to match pred
+    loss = yolo_loss(outputs, labels.float())
     loss.backward()
     optimizer.step()
 
@@ -90,11 +92,10 @@ def train_step(model, optimizer, device, data, total_step):
 #     return False
 
 def yolo_loss(y_pred, y_true):
-    # y_true is a DoubleTensor so convert it to FloatTensor to match pred
-    y_true = y_true.float()
-
     # 1 when there is object, 0 when there is no object in cell
     one_obj = torch.unsqueeze(y_true[..., 4], 3)
+    # 1 when there is no object, 0 when there is object
+    one_noobj = 1.0 - one_obj
 
     # 1st term of loss function: x, y
     pred_xy = torch.sigmoid(y_pred[..., :2])
@@ -115,12 +116,43 @@ def yolo_loss(y_pred, y_true):
     wh_term = LAMBDA_COORD * wh_term.item()
 
     # 3rd and 4th terms of loss function: confidence
-    box_pred = y_pred[..., 0]
-    print('box pred: ', box_pred.size())
-    box_true = y_true[..., 0]
-    print('box true: ', box_true.size())
-    iou = bb_iou(box_pred, box_true)
-    print('IOU: ', iou)
+    box_true_xy = y_true[..., :2]
+    box_true_wh = y_true[..., 2:4]
+    box_true_wh_half = box_true_wh / 2.0
+    true_mins = box_true_xy - box_true_wh_half
+    true_maxs = box_true_xy + box_true_wh_half
+
+    # Is sigmoid needed?
+    box_pred_xy = torch.sigmoid(y_pred[..., :2])
+    box_pred_wh = torch.sigmoid(y_pred[..., 2:4])
+    box_pred_wh_half = box_pred_wh / 2.0
+    pred_mins = box_pred_xy - box_pred_wh_half
+    pred_maxs = box_pred_xy + box_pred_wh_half
+
+    intersect_mins = torch.max(pred_mins, true_mins)
+    intersect_maxs = torch.min(pred_maxs, true_maxs)
+    # TODO: FIX THIS CUDA SHINDIG
+    intersect_wh = torch.max(intersect_maxs - intersect_mins, torch.zeros(intersect_mins.size()).cuda())
+    intersect_areas = intersect_wh[..., 0] * intersect_wh[..., 1]
+
+    true_areas = box_true_wh[..., 0] * box_true_wh[..., 1]
+    pred_areas = box_pred_wh[..., 0] * box_pred_wh[..., 1]
+
+    union_areas = pred_areas + true_areas - intersect_areas
+    iou_scores = intersect_areas / union_areas
+
+    # Combine first and second half of confidence term
+    pred_conf = torch.sigmoid(y_pred[..., 4])
+    # TODO: Consolidate the dim of one_obj and one_noobj
+    one_obj = torch.squeeze(one_obj)
+    one_noobj = torch.squeeze(one_noobj)
+    conf_term_1 = torch.sum(one_obj * torch.pow(pred_conf - iou_scores, 2))
+    conf_term_2 = LAMBDA_NOOBJ * torch.sum(one_noobj * torch.pow(pred_conf - iou_scores, 2))
+    conf_term = conf_term_1 + conf_term_2
+
+    # Combine all terms of the yolo loss function
+    loss = xy_term + wh_term + conf_term
+    return loss
 
 def main():
     parser = argparse.ArgumentParser(description='Trains model')

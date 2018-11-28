@@ -148,7 +148,9 @@ def convert_matrix_to_map(labels):
 
         # print('C: ', label[:, :, 4::5])
         max_c = np.max(label[:, :, 4::5])
+        min_c = np.min(label[:, :, 4::5])
         print('MAX C - raw: {}, sigmoid: {}'.format(max_c, sigmoid(max_c)))
+        print('MIN C: ', min_c)
 
         for row in range(num_grid_rows):
             for col in range(num_grid_cols):

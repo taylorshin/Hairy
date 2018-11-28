@@ -44,6 +44,7 @@ def main():
     # transformed_output = transform_network_output(output.detach().numpy())
     # print('transform output: ', transformed_output)
     # boxes = convert_matrix_to_map(transformed_output)
+    output = torch.sigmoid(output)
     boxes = convert_matrix_to_map(output.detach().numpy())
     print('BOXES: ', boxes)
 
