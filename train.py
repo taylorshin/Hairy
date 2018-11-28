@@ -79,6 +79,8 @@ def train_step(model, optimizer, device, data, total_step):
     # outputs = torch.sigmoid(outputs)
     # loss = criterion(outputs.permute(0, 2, 3, 1), labels.float())
     loss = criterion(outputs, labels.float())
+    # YOLO
+    y_loss = yolo_loss(outputs, labels)
     loss.backward()
     optimizer.step()
 
@@ -86,6 +88,23 @@ def train_step(model, optimizer, device, data, total_step):
 
 # def compute_metrics(model, data, total_step):
 #     return False
+
+def yolo_loss(y_pred, y_true):
+    # y_true is a DoubleTensor so convert it to FloatTensor to match pred
+    y_true = y_true.float()
+
+    # 1 when there is object, 0 when there is no object in cell
+    one_obj = torch.unsqueeze(y_true[..., 4], 3)
+
+    # 1st term of loss function: x, y
+    print('y pred: ', y_pred.size(), y_pred.type())
+    print('y true: ', y_true.size(), y_true.type())
+    pred_xy = torch.sigmoid(y_pred[..., :2])
+    true_xy = y_true[..., :2]
+    xy_term = torch.pow(true_xy - pred_xy, 2)
+    xy_term = one_obj * xy_term
+    xy_term = torch.sum(xy_term)
+    print('xy term: ', xy_term.item())
 
 def main():
     parser = argparse.ArgumentParser(description='Trains model')
@@ -97,7 +116,6 @@ def main():
     # Assume that we are on a CUDA machine, then this should print a CUDA device:
     print('Device: ', device)
 
-    # TODO: Add cuda functionality to Hairy
     model = Hairy()
     model.to(device)
     print(model)
