@@ -30,7 +30,7 @@ class Hairy(nn.Module):
         x = self.pool(F.leaky_relu(self.conv5(x), 0.1))
         # print('after 5th conv layer: ', x.size())
         x = self.pool(F.leaky_relu(self.conv6(x), 0.1))
-        print('after 6th conv layer: ', x.size())
+        # print('after 6th conv layer: ', x.size())
         x = x.view(-1, 32 * 7 * 12)
         # print('after view: ', x.size())
         # print('before fc1: ', x.size())

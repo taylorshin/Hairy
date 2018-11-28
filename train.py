@@ -97,14 +97,30 @@ def yolo_loss(y_pred, y_true):
     one_obj = torch.unsqueeze(y_true[..., 4], 3)
 
     # 1st term of loss function: x, y
-    print('y pred: ', y_pred.size(), y_pred.type())
-    print('y true: ', y_true.size(), y_true.type())
     pred_xy = torch.sigmoid(y_pred[..., :2])
     true_xy = y_true[..., :2]
     xy_term = torch.pow(true_xy - pred_xy, 2)
     xy_term = one_obj * xy_term
     xy_term = torch.sum(xy_term)
-    print('xy term: ', xy_term.item())
+    xy_term = LAMBDA_COORD * xy_term.item()
+
+    # 2nd term of loss function: w, h
+    pred_wh = torch.sigmoid(y_pred[..., 2:4])
+    pred_wh = torch.sqrt(pred_wh)
+    true_wh = y_true[..., 2:4]
+    true_wh = torch.sqrt(true_wh)
+    wh_term = torch.pow(true_wh - pred_wh, 2)
+    wh_term = one_obj * wh_term
+    wh_term = torch.sum(wh_term)
+    wh_term = LAMBDA_COORD * wh_term.item()
+
+    # 3rd and 4th terms of loss function: confidence
+    box_pred = y_pred[..., 0]
+    print('box pred: ', box_pred.size())
+    box_true = y_true[..., 0]
+    print('box true: ', box_true.size())
+    iou = bb_iou(box_pred, box_true)
+    print('IOU: ', iou)
 
 def main():
     parser = argparse.ArgumentParser(description='Trains model')
