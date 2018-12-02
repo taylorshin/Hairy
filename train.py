@@ -10,7 +10,7 @@ from dataset import *
 from model import Hairy
 from constants import *
 
-# criterion = nn.MSELoss()
+criterion = nn.MSELoss()
 
 def plot_graph(training_loss, name):
     plt.clf()
@@ -37,16 +37,16 @@ def train(args, model, device, train_loader, val_loader, optimizer, plot=True):
             t.set_description('Epoch {}'.format(epoch))
 
             for data in t:
-                _, labels = data
                 # Baseline MSE for current batch
+                _, labels = data
                 base_loss = F.mse_loss(labels, torch.zeros((args.batch_size, S1, S2, T), dtype=torch.double)).item()
 
                 metrics = train_step(model, optimizer, device, data, total_step)
 
                 total_metrics += metrics
                 avg_metrics = total_metrics / step
-                # t.set_postfix(loss=avg_metrics[0], base=base_loss)
-                t.set_postfix(loss=avg_metrics[0])
+                t.set_postfix(loss=avg_metrics[0], base=base_loss)
+                # t.set_postfix(loss=avg_metrics[0])
 
                 step += 1
                 total_step += 1
@@ -76,20 +76,16 @@ def train_step(model, optimizer, device, data, total_step):
 
     # Forward pass -> backward pass -> optimize
     outputs = model(inputs)
-    # Transform network outputs
-    # outputs = torch.sigmoid(outputs)
-    # loss = criterion(outputs.permute(0, 2, 3, 1), labels.float())
-    # loss = criterion(outputs, labels.float())
-    # YOLO
+
+    # MSE
+    loss = criterion(outputs, labels.float())
+
     # y_true is a DoubleTensor so convert it to FloatTensor to match pred
-    loss = yolo_loss(outputs, labels.float())
+    # loss = yolo_loss(outputs, labels.float())
     loss.backward()
     optimizer.step()
 
     return np.array([loss.item()])
-
-# def compute_metrics(model, data, total_step):
-#     return False
 
 def yolo_loss(y_pred, y_true):
     # 1 when there is object, 0 when there is no object in cell
@@ -103,7 +99,7 @@ def yolo_loss(y_pred, y_true):
     xy_term = torch.pow(true_xy - pred_xy, 2)
     xy_term = one_obj * xy_term
     xy_term = torch.sum(xy_term)
-    xy_term = LAMBDA_COORD * xy_term.item()
+    xy_term = LAMBDA_COORD * xy_term
 
     # 2nd term of loss function: w, h
     pred_wh = torch.sigmoid(y_pred[..., 2:4])
@@ -113,9 +109,10 @@ def yolo_loss(y_pred, y_true):
     wh_term = torch.pow(true_wh - pred_wh, 2)
     wh_term = one_obj * wh_term
     wh_term = torch.sum(wh_term)
-    wh_term = LAMBDA_COORD * wh_term.item()
+    wh_term = LAMBDA_COORD * wh_term
 
     # 3rd and 4th terms of loss function: confidence
+    """
     box_true_xy = y_true[..., :2]
     box_true_wh = y_true[..., 2:4]
     box_true_wh_half = box_true_wh / 2.0
@@ -149,9 +146,10 @@ def yolo_loss(y_pred, y_true):
     conf_term_1 = torch.sum(one_obj * torch.pow(pred_conf - iou_scores, 2))
     conf_term_2 = LAMBDA_NOOBJ * torch.sum(one_noobj * torch.pow(pred_conf - iou_scores, 2))
     conf_term = conf_term_1 + conf_term_2
+    """
 
     # Combine all terms of the yolo loss function
-    loss = xy_term + wh_term + conf_term
+    loss = xy_term + wh_term# + conf_term
     return loss
 
 def main():
@@ -169,7 +167,7 @@ def main():
     print(model)
 
     # Optimizer
-    optimizer = optim.SGD(model.parameters(), lr=args.lr)
+    optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
     print('Loading data...')
     train_loader, val_loader = get_tv_loaders('data.hdf5', args.batch_size)

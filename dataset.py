@@ -149,22 +149,22 @@ def convert_matrix_to_map(labels):
         # print('C: ', label[:, :, 4::5])
         max_c = np.max(label[:, :, 4::5])
         min_c = np.min(label[:, :, 4::5])
-        print('MAX C - raw: {}, sigmoid: {}'.format(max_c, sigmoid(max_c)))
-        print('MIN C: ', min_c)
+        print('MAX C: {}'.format(max_c))
+        print('MIN C: {}'.format(min_c))
 
         for row in range(num_grid_rows):
             for col in range(num_grid_cols):
                 box_vals = label[row, col]
                 for k in range(0, T, 5):
                     # print('before: ', box_vals[k + 4])
-                    c = (box_vals[k + 4])
+                    c = box_vals[k + 4]
                     # print('after: ', c)
                     if c <= CONFIDENCE_THRESHOLD:
                         continue
-                    x = (box_vals[k])
-                    y = (box_vals[k + 1])
-                    w = (box_vals[k + 2])
-                    h = (box_vals[k + 3])
+                    x = box_vals[k]
+                    y = box_vals[k + 1]
+                    w = box_vals[k + 2]
+                    h = box_vals[k + 3]
                     cell_topleft_x = col * GRID_WIDTH
                     cell_topleft_y = row * GRID_HEIGHT
                     # cell_center_x = cell_topleft_x + GRID_WIDTH / 2
@@ -178,11 +178,6 @@ def convert_matrix_to_map(labels):
                     h = int(h * IMG_HEIGHT)
                     box_dict[l].append([x, y, w, h])
     return box_dict
-
-def transform_network_output(output):
-    sig = lambda x: sigmoid(x)
-    v_fun = np.vectorize(sig)
-    return v_fun(output)
 
 if __name__ == '__main__':
     tfile = open('image_boxes.txt', 'r')
