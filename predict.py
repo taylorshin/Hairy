@@ -27,9 +27,13 @@ def main():
     else:
         print('WARNING: No model loaded! Please specify model path.')
 
-    # print('Loading data...')
-    ds = HairFollicleDataset('data.hdf5')
-    index = 29
+    # Train set
+    ss_indices_train = (0, 140)
+    # Test set
+    ss_indices_test = (140, 173)
+
+    ds = HairFollicleDataset('data.hdf5', ss_indices_test)
+    index = 8
     data_point = ds[index][0]
     plt_image = np.transpose(data_point, (1, 2, 0))
     # plt.imshow(plt_image)

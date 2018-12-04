@@ -25,13 +25,17 @@ class GenHelper(Dataset):
         return self.parent[self.mapping[index]]
 
 class HairFollicleDataset(Dataset):
-    def __init__(self, filename):
+    def __init__(self, filename, ss_indices=None):
         self.data = []
         self.labels = []
 
         try:
             hfile = h5py.File(filename, 'r')
             keys = sorted(list(hfile.keys()), key=lambda k: int(k))
+            if ss_indices:
+                # Start Stop Indices
+                start, end = ss_indices
+                keys = keys[start:end]
             # TODO: add back empty arrays for img 33 and 173 in txt file
             # Value returns ndarray from HDF5 data. It also speeds up data loading.
             # CROP 2 PIXELS FROM LEFT AND RIGHT

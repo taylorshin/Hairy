@@ -17,7 +17,7 @@ def plot_graph(training_loss, name):
     plt.plot(training_loss)
     plt.savefig(OUT_DIR + '/' + name)
 
-def train(args, model, device, train_loader, val_loader, optimizer, plot=True):
+def train(args, model, device, train_loader, optimizer, plot=True):
     model_save = model
     # Number of training steps per epoch
     epoch = 1
@@ -59,7 +59,7 @@ def train(args, model, device, train_loader, val_loader, optimizer, plot=True):
             plot_graph([m[0] for m in train_metrics], 'loss.png')
 
         # Save model
-        torch.save(model_save.state_dict(), OUT_DIR + '/model' + '.pt')
+        torch.save(model_save.state_dict(), OUT_DIR + '/model.pt')
 
         epoch += 1
 
@@ -170,13 +170,12 @@ def main():
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
     print('Loading data...')
-    train_loader, val_loader = get_tv_loaders('data.hdf5', args.batch_size)
-    # Save test data indices for predict to use
-    # for data in val_loader:
-    #     print(data)
+    # train_loader, val_loader = get_tv_loaders('data.hdf5', args.batch_size)
+    ds = HairFollicleDataset('data.hdf5', (0, 140))
+    train_loader = get_loader(ds, args.batch_size)
     print('Data loaded.')
     print('Training has started.')
-    train(args, model, device, train_loader, val_loader, optimizer, False)
+    train(args, model, device, train_loader, optimizer, False)
 
 if __name__ == '__main__':
     main()
