@@ -38,15 +38,15 @@ def train(args, model, device, train_loader, optimizer, plot=True):
 
             for data in t:
                 # Baseline MSE for current batch
-                _, labels = data
-                base_loss = F.mse_loss(labels, torch.zeros((args.batch_size, S1, S2, T), dtype=torch.double)).item()
+                # _, labels = data
+                # base_loss = F.mse_loss(labels, torch.zeros((args.batch_size, S1, S2, T), dtype=torch.double)).item()
 
                 metrics = train_step(model, optimizer, device, data, total_step)
 
                 total_metrics += metrics
                 avg_metrics = total_metrics / step
-                t.set_postfix(loss=avg_metrics[0], base=base_loss)
-                # t.set_postfix(loss=avg_metrics[0])
+                # t.set_postfix(loss=avg_metrics[0], base=base_loss)
+                t.set_postfix(loss=avg_metrics[0])
 
                 step += 1
                 total_step += 1
@@ -78,10 +78,10 @@ def train_step(model, optimizer, device, data, total_step):
     outputs = model(inputs)
 
     # MSE
-    loss = criterion(outputs, labels.float())
+    # loss = criterion(outputs, labels.float())
 
     # y_true is a DoubleTensor so convert it to FloatTensor to match pred
-    # loss = yolo_loss(outputs, labels.float())
+    loss = yolo_loss(outputs, labels.float())
     loss.backward()
     optimizer.step()
 
@@ -112,14 +112,12 @@ def yolo_loss(y_pred, y_true):
     wh_term = LAMBDA_COORD * wh_term
 
     # 3rd and 4th terms of loss function: confidence
-    """
     box_true_xy = y_true[..., :2]
     box_true_wh = y_true[..., 2:4]
     box_true_wh_half = box_true_wh / 2.0
     true_mins = box_true_xy - box_true_wh_half
     true_maxs = box_true_xy + box_true_wh_half
 
-    # Is sigmoid needed?
     box_pred_xy = torch.sigmoid(y_pred[..., :2])
     box_pred_wh = torch.sigmoid(y_pred[..., 2:4])
     box_pred_wh_half = box_pred_wh / 2.0
@@ -140,16 +138,16 @@ def yolo_loss(y_pred, y_true):
 
     # Combine first and second half of confidence term
     pred_conf = torch.sigmoid(y_pred[..., 4])
+    true_conf = iou_scores * y_true[..., 4]
     # TODO: Consolidate the dim of one_obj and one_noobj
     one_obj = torch.squeeze(one_obj)
     one_noobj = torch.squeeze(one_noobj)
-    conf_term_1 = torch.sum(one_obj * torch.pow(pred_conf - iou_scores, 2))
-    conf_term_2 = LAMBDA_NOOBJ * torch.sum(one_noobj * torch.pow(pred_conf - iou_scores, 2))
+    conf_term_1 = torch.sum(one_obj * torch.pow(true_conf - pred_conf, 2))
+    conf_term_2 = LAMBDA_NOOBJ * torch.sum(one_noobj * torch.pow(true_conf - pred_conf, 2))
     conf_term = conf_term_1 + conf_term_2
-    """
 
     # Combine all terms of the yolo loss function
-    loss = xy_term + wh_term# + conf_term
+    loss = xy_term + wh_term + conf_term
     return loss
 
 def main():

@@ -10,7 +10,6 @@ def sigmoid(x):
 def draw_boxes(image, boxes):
     image_w, image_h, _ = image.shape
     for box in boxes:
-        print(box)
         x, y, w, h = box
         x_min = int(x - w / 2.0)
         y_min = int(y - h / 2.0)

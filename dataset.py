@@ -141,7 +141,7 @@ def convert_map_to_matrix(box_dict):
 
     return labels
 
-def convert_matrix_to_map(labels):
+def convert_matrix_to_map(labels, conf_thresh=CONFIDENCE_THRESHOLD):
     box_dict = {}
     for i in range(len(labels)):
         box_dict[i] = []
@@ -160,10 +160,9 @@ def convert_matrix_to_map(labels):
             for col in range(num_grid_cols):
                 box_vals = label[row, col]
                 for k in range(0, T, 5):
-                    # print('before: ', box_vals[k + 4])
                     c = box_vals[k + 4]
-                    # print('after: ', c)
-                    if c <= CONFIDENCE_THRESHOLD:
+                    # Skip grid if conf prob is less than the threshold
+                    if c <= conf_thresh:
                         continue
                     x = box_vals[k]
                     y = box_vals[k + 1]
