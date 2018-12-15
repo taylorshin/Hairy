@@ -150,7 +150,6 @@ def convert_matrix_to_map(labels, conf_thresh=CONFIDENCE_THRESHOLD):
         num_grid_rows = label.shape[0]
         num_grid_cols = label.shape[1]
 
-        # print('C: ', label[:, :, 4::5])
         max_c = np.max(label[:, :, 4::5])
         min_c = np.min(label[:, :, 4::5])
         print('MAX C: {}'.format(max_c))
@@ -160,14 +159,17 @@ def convert_matrix_to_map(labels, conf_thresh=CONFIDENCE_THRESHOLD):
             for col in range(num_grid_cols):
                 box_vals = label[row, col]
                 for k in range(0, T, 5):
-                    c = box_vals[k + 4]
+                    c = (box_vals[k + 4])
                     # Skip grid if conf prob is less than the threshold
                     if c <= conf_thresh:
                         continue
-                    x = box_vals[k]
-                    y = box_vals[k + 1]
-                    w = box_vals[k + 2]
-                    h = box_vals[k + 3]
+                    x = (box_vals[k])
+                    y = (box_vals[k + 1])
+                    # Width and height values are sometimes negative because of leaky relu
+                    w = (box_vals[k + 2])
+                    print('W: ', w)
+                    h = (box_vals[k + 3])
+                    print('H: ', h)
                     cell_topleft_x = col * GRID_WIDTH
                     cell_topleft_y = row * GRID_HEIGHT
                     # cell_center_x = cell_topleft_x + GRID_WIDTH / 2

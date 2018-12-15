@@ -54,6 +54,13 @@ if __name__ == '__main__':
     content = tfile.read()
     boxes = eval(content)
 
+    # IOU Test
+    box1 = [5, 5, 4, 4]
+    box2 = [7, 7, 4, 4]
+    # IOU should be ~0.1429
+    iou = bb_iou(box1, box2)
+    print('IOU: ', iou)
+
     ds = HairFollicleDataset('data.hdf5')
     index = 0
     image = np.transpose(ds[index][0], (1, 2, 0))

@@ -89,7 +89,8 @@ def train_step(model, optimizer, device, data, total_step):
 
 def yolo_loss(y_pred, y_true):
     # 1 when there is object, 0 when there is no object in cell
-    one_obj = torch.unsqueeze(y_true[..., 4], 3)
+    # one_obj = torch.unsqueeze(y_true[..., 4], 3)
+    one_obj = y_true[..., 4]
     # 1 when there is no object, 0 when there is object
     one_noobj = 1.0 - one_obj
 
@@ -97,7 +98,7 @@ def yolo_loss(y_pred, y_true):
     pred_xy = torch.sigmoid(y_pred[..., :2])
     true_xy = y_true[..., :2]
     xy_term = torch.pow(true_xy - pred_xy, 2)
-    xy_term = one_obj * xy_term
+    xy_term = one_obj * (xy_term[..., 0] + xy_term[..., 1])
     xy_term = torch.sum(xy_term)
     xy_term = LAMBDA_COORD * xy_term
 
@@ -107,11 +108,18 @@ def yolo_loss(y_pred, y_true):
     true_wh = y_true[..., 2:4]
     true_wh = torch.sqrt(true_wh)
     wh_term = torch.pow(true_wh - pred_wh, 2)
-    wh_term = one_obj * wh_term
+    wh_term = one_obj * (wh_term[..., 0] + wh_term[..., 1])
     wh_term = torch.sum(wh_term)
     wh_term = LAMBDA_COORD * wh_term
 
+    # Temporary MSE loss for confidence
+    pred_c = torch.sigmoid(y_pred[..., 4])
+    true_c = y_true[..., 4]
+    conf_term = torch.pow(pred_c - true_c, 2)
+    conf_term = torch.sum(conf_term) / true_c.size()[0]
+
     # 3rd and 4th terms of loss function: confidence
+    """
     box_true_xy = y_true[..., :2]
     box_true_wh = y_true[..., 2:4]
     box_true_wh_half = box_true_wh / 2.0
@@ -138,15 +146,16 @@ def yolo_loss(y_pred, y_true):
 
     # Combine first and second half of confidence term
     pred_conf = torch.sigmoid(y_pred[..., 4])
-    true_conf = iou_scores * y_true[..., 4]
-    # TODO: Consolidate the dim of one_obj and one_noobj
-    one_obj = torch.squeeze(one_obj)
-    one_noobj = torch.squeeze(one_noobj)
-    conf_term_1 = torch.sum(one_obj * torch.pow(true_conf - pred_conf, 2))
-    conf_term_2 = LAMBDA_NOOBJ * torch.sum(one_noobj * torch.pow(true_conf - pred_conf, 2))
+    # true_conf = iou_scores * y_true[..., 4]
+    conf_term_1 = torch.sum(one_obj * torch.pow(iou_scores - pred_conf, 2))
+    conf_term_2 = LAMBDA_NOOBJ * torch.sum(one_noobj * torch.pow(iou_scores - pred_conf, 2))
     conf_term = conf_term_1 + conf_term_2
+    """
 
     # Combine all terms of the yolo loss function
+    # print('xy: ', xy_term)
+    # print('wh: ', wh_term)
+    # print('conf: ', conf_term)
     loss = xy_term + wh_term + conf_term
     return loss
 

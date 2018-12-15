@@ -16,7 +16,8 @@ def predict(model, image):
 def main():
     parser = argparse.ArgumentParser(description='Make predictions from trained model')
     parser.add_argument('model', help='Path to model file')
-    parser.add_argument('--conf', default=0.8, type=float, help='Confidence threshold')
+    parser.add_argument('--img', default=0, type=int, help='Image index')
+    parser.add_argument('--conf', default=0.5, type=float, help='Confidence threshold')
     args = parser.parse_args()
 
     print('Model path: {}'.format(args.model))
@@ -33,8 +34,8 @@ def main():
     # Test set
     ss_indices_test = (140, 173)
 
-    ds = HairFollicleDataset('data.hdf5', ss_indices_test)
-    index = 0
+    ds = HairFollicleDataset('data.hdf5', ss_indices_train)
+    index = args.img
     data_point = ds[index][0]
     plt_image = np.transpose(data_point, (1, 2, 0))
     # plt.imshow(plt_image)
@@ -42,9 +43,13 @@ def main():
     image = torch.unsqueeze(torch.from_numpy(data_point), 0)
 
     output = predict(model, image)
+    # Need to permute dims for YOLO v2
+    # output = output.permute(0, 2, 3, 1)
     print('model output: ', output, output.size())
+
     # Transform network output to obtain bounding box predictions
     output = torch.sigmoid(output)
+
     boxes = convert_matrix_to_map(output.detach().numpy(), args.conf)
     print('BOXES: ', boxes)
 
