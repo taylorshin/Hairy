@@ -5,6 +5,5 @@ __pycache__/
 
 # Miscellaneous
 .DS_Store
-data.hdf5
-image_boxes.txt
+data/
 out/

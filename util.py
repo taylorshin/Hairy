@@ -1,8 +1,8 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-from torch.utils.data import Dataset
-from dataset import *
+from constants import *
+# from dataset import *
 
 def sigmoid(x):
     return 1.0 / (1.0 + np.exp(-x))
@@ -49,6 +49,97 @@ def bb_iou(box1, box2):
 
     return iou
 
+def convert_map_to_matrix(box_dict):
+    """
+    Takes in bounding boxes (dict) extracted from processed data and converts them into a label matrix.
+    """
+    n = len(box_dict)
+    labels = np.zeros((n, S1, S2, T))
+    # TODO: Remove this special code for missing data in old dataset
+    i = 0
+    # for i, boxes in box_dict.items():
+    for _, boxes in box_dict.items():
+        # img = labels[i - 1]
+        img = labels[i]
+        for j, box in enumerate(boxes):
+            x, y, w, h = box
+            row = y // GRID_HEIGHT
+            col = x // GRID_WIDTH
+            # Grid cell center position
+            # cell_x = col * GRID_WIDTH + GRID_WIDTH / 2
+            # cell_y = row * GRID_HEIGHT + GRID_HEIGHT / 2
+            # Grid cell top left position
+            cell_x = col * GRID_WIDTH
+            cell_y = row * GRID_HEIGHT
+            # B * (5 + C) vector
+            box_data = img[row, col]
+            # Relative x from the center of the grid cell
+            # box_data[j * 5] = cell_x - x
+            # Relative x from the top left corner of the grid cell
+            box_data[0] = x - cell_x
+            # Relative y
+            # box_data[j * 5 + 1] = cell_y - y
+            box_data[1] = y - cell_y
+            # Width
+            box_data[2] = w
+            # Height
+            box_data[3] = h
+            # Confidence level
+            box_data[4] = 1
+        # TODO: Remove this special code for missing data in old dataset
+        i += 1
+    # Relative x and y are normalized by grid cell size
+    labels[:, :, :, 0::5] = labels[:, :, :, 0::5] / GRID_WIDTH
+    labels[:, :, :, 1::5] = labels[:, :, :, 1::5] / GRID_HEIGHT
+    # Normalize bounding box width/height by image width/height
+    labels[:, :, :, 2::5] = labels[:, :, :, 2::5] / IMG_WIDTH
+    labels[:, :, :, 3::5] = labels[:, :, :, 3::5] / IMG_HEIGHT
+
+    return labels
+
+def convert_matrix_to_map(labels, conf_thresh=CONFIDENCE_THRESHOLD):
+    box_dict = {}
+    for i in range(len(labels)):
+        box_dict[i] = []
+
+    for l, label in enumerate(labels):
+        num_grid_rows = label.shape[0]
+        num_grid_cols = label.shape[1]
+
+        max_c = np.max(label[:, :, 4::5])
+        min_c = np.min(label[:, :, 4::5])
+        print('MAX C: {}'.format(max_c))
+        print('MIN C: {}'.format(min_c))
+
+        for row in range(num_grid_rows):
+            for col in range(num_grid_cols):
+                box_vals = label[row, col]
+                for k in range(0, T, 5):
+                    c = (box_vals[k + 4])
+                    # Skip grid if conf prob is less than the threshold
+                    if c <= conf_thresh:
+                        continue
+                    x = (box_vals[k])
+                    y = (box_vals[k + 1])
+                    # Width and height values are sometimes negative because of leaky relu
+                    w = (box_vals[k + 2])
+                    print('W: ', w)
+                    h = (box_vals[k + 3])
+                    print('H: ', h)
+                    cell_topleft_x = col * GRID_WIDTH
+                    cell_topleft_y = row * GRID_HEIGHT
+                    # cell_center_x = cell_topleft_x + GRID_WIDTH / 2
+                    # cell_center_y = cell_topleft_y + GRID_HEIGHT / 2
+                    # Unnormalize values
+                    # x = int(cell_center_x - (x * (GRID_WIDTH / 2)))
+                    x = int(cell_topleft_x + x * GRID_WIDTH)
+                    # y = int(cell_center_y - (y * (GRID_HEIGHT / 2)))
+                    y = int(cell_topleft_y + y * GRID_HEIGHT)
+                    w = int(w * IMG_WIDTH)
+                    h = int(h * IMG_HEIGHT)
+                    box_dict[l].append([x, y, w, h])
+    return box_dict
+
 if __name__ == '__main__':
     tfile = open('image_boxes.txt', 'r')
     content = tfile.read()
@@ -61,9 +152,9 @@ if __name__ == '__main__':
     iou = bb_iou(box1, box2)
     print('IOU: ', iou)
 
-    ds = HairFollicleDataset('data.hdf5')
-    index = 0
-    image = np.transpose(ds[index][0], (1, 2, 0))
-    boxed_image = draw_boxes(image, boxes[index + 1])
-    plt.imshow(image)
-    plt.show()
+    # ds = HairFollicleDataset('data.hdf5')
+    # index = 0
+    # image = np.transpose(ds[index][0], (1, 2, 0))
+    # boxed_image = draw_boxes(image, boxes[index + 1])
+    # plt.imshow(image)
+    # plt.show()

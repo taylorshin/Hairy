@@ -15,3 +15,4 @@ LAMBDA_COORD = 5
 LAMBDA_NOOBJ = 0.5
 
 OUT_DIR = 'out'
+DATA_DIR = 'data'
