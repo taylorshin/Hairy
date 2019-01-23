@@ -22,9 +22,11 @@ def load_data():
         # TODO: add back empty arrays for img 33 and 173 in txt file
         # CROP 2 PIXELS FROM LEFT AND RIGHT
         data = np.asarray([(hfile[k])[:, 2:-2, :] for k in keys], 'float32')
-        data = np.transpose(data, (0, 3, 1, 2))
+        # data = np.transpose(data, (0, 3, 1, 2))
         # Normalize pixels values to [0, 1]
         data = data / 255
+        # Remove redundant channels because images are grayscale
+        data = data[:, :, :, 0]
 
         # Prepare target data
         tfile = open('data/image_boxes.txt', 'r')
@@ -54,10 +56,10 @@ def validation_split(data_xy, split=0.2):
     assert len(val_indicies) == val_size
     assert len(train_indicies) == len(r) - val_size
 
-    train_data = [data[i] for i in train_indicies]
-    val_data = [data[i] for i in val_indicies]
-    train_targets = [targets[i] for i in train_indicies]
-    val_targets = [targets[i] for i in val_indicies]
+    train_data = np.array([data[i] for i in train_indicies])
+    val_data = np.array([data[i] for i in val_indicies])
+    train_targets = np.array([targets[i] for i in train_indicies])
+    val_targets = np.array([targets[i] for i in val_indicies])
 
     return (train_data, train_targets), (val_data, val_targets)
 
@@ -70,4 +72,11 @@ if __name__ == '__main__':
     assert os.path.isdir(args.data_dir), 'Could not find the dataset at {}'.format(args.data_dir)
 
     train_set, val_set = validation_split(load_data())
+    data, targets = train_set
     # print(val_set)
+    # img = np.transpose(data[0], (1, 2, 0))
+    img = data[0]
+    # img = img[:, :, 0]
+    print('img: ', img.shape, img)
+    plt.imshow(img)
+    plt.show()
