@@ -1,8 +1,14 @@
+import os
+
+# Constants for YOLO algorithm
 S1 = 7
 S2 = 12
 B = 1
 C = 0
 T = B * (5 + C)
+LAMBDA_COORD = 5
+LAMBDA_NOOBJ = 0.5
+
 IMG_WIDTH = 996
 IMG_HEIGHT = 700
 IMG_CHANNELS = 3
@@ -11,8 +17,8 @@ GRID_HEIGHT = IMG_HEIGHT // S1
 MAX_BOX_WIDTH = IMG_WIDTH / 2
 MAX_BOX_HEIGHT = IMG_HEIGHT / 2
 CONFIDENCE_THRESHOLD = 0.5
-LAMBDA_COORD = 5
-LAMBDA_NOOBJ = 0.5
-BATCH_SIZE = 16
+
+BATCH_SIZE = 8
 OUT_DIR = 'out'
 DATA_DIR = 'data'
+MODEL_FILE = os.path.join(OUT_DIR, 'model.h5')

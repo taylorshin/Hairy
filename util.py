@@ -140,6 +140,17 @@ def convert_matrix_to_map(labels, conf_thresh=CONFIDENCE_THRESHOLD):
                     box_dict[l].append([x, y, w, h])
     return box_dict
 
+def build_or_load(allow_load=True):
+    from model.model_fn import build_model
+    model = build_model()
+    if allow_load:
+        try:
+            model.load_weights(MODEL_FILE)
+            print('Loaded model from file.')
+        except:
+            print('Unable to load model from file.')
+    return model
+
 if __name__ == '__main__':
     tfile = open('image_boxes.txt', 'r')
     content = tfile.read()
