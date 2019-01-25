@@ -26,7 +26,7 @@ def load_data():
         # Normalize pixels values to [0, 1]
         data = data / 255
         # Remove redundant channels because images are grayscale
-        data = data[:, :, :, 0]
+        # data = data[:, :, :, 0]
 
         # Prepare target data
         tfile = open('data/image_boxes.txt', 'r')
