@@ -16,6 +16,7 @@ def train(model):
 
 def main():
     model = build_model()
+    model.summary()
     train(model)
 
 if __name__ == '__main__':

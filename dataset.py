@@ -26,7 +26,7 @@ def load_data():
         # Normalize pixels values to [0, 1]
         data = data / 255
         # Remove redundant channels because images are grayscale
-        # data = data[:, :, :, 0]
+        data = data[:, :, :, [0]]
 
         # Prepare target data
         tfile = open('data/image_boxes.txt', 'r')
@@ -73,6 +73,7 @@ if __name__ == '__main__':
 
     train_set, val_set = validation_split(load_data())
     data, targets = train_set
+    data = np.squeeze(data)
     # print(val_set)
     # img = np.transpose(data[0], (1, 2, 0))
     img = data[0]
