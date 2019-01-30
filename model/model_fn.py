@@ -4,6 +4,10 @@ from tensorflow.keras import layers
 from constants import *
 
 def yolo_loss(y_pred, y_true):
+    # print('y_pred: ', y_pred, tf.shape(y_pred))
+    # print('y_true: ', y_true, tf.shape(y_true))
+    y_pred = tf.cast(y_pred, tf.float32)
+    y_true = tf.cast(y_true, tf.float32)
     # 1 when there is object, 0 when there is no object in cell
     one_obj = y_true[..., 4]
     # 1 when there is no object, 0 when there is object
@@ -16,6 +20,7 @@ def yolo_loss(y_pred, y_true):
     xy_term = one_obj * (xy_term[..., 0] + xy_term[..., 1])
     xy_term = tf.math.reduce_sum(xy_term)
     xy_term = LAMBDA_COORD * xy_term
+    # print('xy term: ', xy_term)
 
     # 2nd term of loss function: w, h
     pred_wh = tf.math.sigmoid(y_pred[..., 2:4])
@@ -84,6 +89,64 @@ def build_model():
 
     model = keras.Model(inputs=inputs, outputs=outputs)
     optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
-    model.compile(loss='mse', optimizer=optimizer, metrics=['mse'])
+    # model.compile(loss='mse', optimizer=optimizer, metrics=['mse'])
+    model.compile(loss='mse', optimizer=optimizer)
 
     return model
+
+class Hairy(keras.Model):
+    
+    def __init__(self):
+        super(Hairy, self).__init__(name='Hairy')
+        self.conv1 = layers.Conv2D(32, 7)
+        self.conv2 = layers.Conv2D(32, 5)
+        self.conv3 = layers.Conv2D(32, 5)
+        self.conv4 = layers.Conv2D(32, 5)
+        self.conv5 = layers.Conv2D(32, 5)
+        self.conv6 = layers.Conv2D(32, 3)
+        self.lrelu = layers.LeakyReLU(alpha=0.1)
+        self.pool = layers.MaxPooling2D(pool_size=(2, 2))
+        self.dense1 = layers.Dense(4096, activation='softmax')
+        self.dense2 = layers.Dense(S1 * S2 * T, activation='softmax')
+
+    def call(self, inputs):
+        print('before conv layers 1: ', inputs)
+        # Conv layers 1
+        x = self.conv1(inputs)
+        x = self.lrelu(x)
+        x = self.pool(x)
+        print('after conv layers 1: ', x)
+
+        # Conv layers 2
+        x = self.conv2(x)
+        x = self.lrelu(x)
+        x = self.pool(x)
+
+        # Conv layers 3
+        x = self.conv3(x)
+        x = self.lrelu(x)
+        x = self.pool(x)
+
+        # Conv layers 4
+        x = self.conv4(x)
+        x = self.lrelu(x)
+        x = self.pool(x)
+
+        # Conv layers 5
+        x = self.conv5(x)
+        x = self.lrelu(x)
+        x = self.pool(x)
+
+        # Conv layers 6
+        x = self.conv6(x)
+        x = self.lrelu(x)
+        x = self.pool(x)
+
+        # Fully connected layers
+        x = layers.Flatten()(x)
+        x = self.dense1(x)
+        x = self.lrelu(x)
+        x = self.dense2(x)
+        outputs = layers.Reshape((S1, S2, T))(x)
+
+        return outputs

@@ -47,7 +47,7 @@ def validation_split(data_xy, split=0.2):
     # Make sure to always shuffle with a fixed seed so that the split is reproducible
     random.seed(14)
     r = list(range(len(targets)))
-    random.shuffle(r)
+    # random.shuffle(r)
 
     val_size = int(math.ceil(len(r) * split))
     train_indicies = r[:-val_size]
@@ -73,6 +73,8 @@ if __name__ == '__main__':
 
     train_set, val_set = validation_split(load_data())
     data, targets = train_set
+    print('DATA: ', data)
+    print('TARGETS: ', targets)
     data = np.squeeze(data)
     # print(val_set)
     # img = np.transpose(data[0], (1, 2, 0))

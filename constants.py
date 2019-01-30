@@ -19,7 +19,8 @@ MAX_BOX_HEIGHT = IMG_HEIGHT / 2
 CONFIDENCE_THRESHOLD = 0.5
 
 BATCH_SIZE = 8
-LEARNING_RATE = 1e-5
+LEARNING_RATE = 1e-4
 OUT_DIR = 'out'
 DATA_DIR = 'data'
 MODEL_FILE = os.path.join(OUT_DIR, 'model.h5')
+LOG_DIR = os.path.join(OUT_DIR, 'logs')
