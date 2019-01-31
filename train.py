@@ -7,8 +7,6 @@ from constants import *
 def train(model):
     train_set, val_set = validation_split(load_data())
     train_data, train_targets = train_set
-    # print('TRAIN TYPE: ', train_data.dtype)
-    # print('TRAIN TYPEsss: ', train_targets.dtype)
 
     callbacks = [
         tf.keras.callbacks.ModelCheckpoint(MODEL_FILE, monitor='loss', save_best_only=True, save_weights_only=True),
@@ -20,13 +18,17 @@ def train(model):
 
 def main():
     # Turn on eager execution for debugging
-    tf.enable_eager_execution()
+    # tf.enable_eager_execution()
 
-    # model = build_model()
+    model = build_model()
+
+    """
     model = Hairy()
     optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
     model.compile(loss='mse', optimizer=optimizer)
-    # model.summary()
+    """
+
+    model.summary()
     train(model)
 
 if __name__ == '__main__':

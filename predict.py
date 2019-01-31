@@ -19,15 +19,18 @@ def main():
     # model.summary()
 
     val_set, val_set = validation_split(load_data())
-    val_data, val_targets = val_set
+    data, targets = val_set
+    # data = np.squeeze(data)
 
     index = args.img
-    plt_img = val_data[index]
+    plt_img = data[index]
+    print('plt img shape: ', plt_img.shape)
     # plt.imshow(plt_img)
     # plt.show()
 
     # Add batch dimension
-    test_img = tf.expand_dims(plt_img, 0)
+    test_img = tf.expand_dims(data[index], 0)
+    print('test img shape: ', test_img.shape)
 
     prediction = model.predict(test_img, steps=1)
     # Need to permute dims for YOLO v2
@@ -43,6 +46,7 @@ def main():
         print('BOXES: ', boxes)
 
         box_img = draw_boxes(plt_img, boxes[0])
+        box_img = np.squeeze(box_img)
         plt.imshow(box_img)
         plt.show()
 

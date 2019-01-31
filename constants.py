@@ -1,5 +1,12 @@
 import os
 
+BATCH_SIZE = 8
+LEARNING_RATE = 1e-2
+OUT_DIR = 'out'
+DATA_DIR = 'data'
+MODEL_FILE = os.path.join(OUT_DIR, 'model.h5')
+LOG_DIR = os.path.join(OUT_DIR, 'logs')
+
 # Constants for YOLO algorithm
 S1 = 7
 S2 = 12
@@ -17,10 +24,3 @@ GRID_HEIGHT = IMG_HEIGHT // S1
 MAX_BOX_WIDTH = IMG_WIDTH / 2
 MAX_BOX_HEIGHT = IMG_HEIGHT / 2
 CONFIDENCE_THRESHOLD = 0.5
-
-BATCH_SIZE = 8
-LEARNING_RATE = 1e-4
-OUT_DIR = 'out'
-DATA_DIR = 'data'
-MODEL_FILE = os.path.join(OUT_DIR, 'model.h5')
-LOG_DIR = os.path.join(OUT_DIR, 'logs')

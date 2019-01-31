@@ -3,9 +3,16 @@ from tensorflow import keras
 from tensorflow.keras import layers
 from constants import *
 
-def yolo_loss(y_pred, y_true):
-    # print('y_pred: ', y_pred, tf.shape(y_pred))
+def mse_loss(y_true, y_pred):
     # print('y_true: ', y_true, tf.shape(y_true))
+    # print('y_pred: ', y_pred, tf.shape(y_pred))
+    mse = tf.reduce_mean(tf.square(y_pred - y_true))
+    # print('MSE: ', mse)
+    return mse
+
+def yolo_loss(y_true, y_pred):
+    # print('y_true: ', y_true, tf.shape(y_true))
+    # print('y_pred: ', y_pred, tf.shape(y_pred))
     y_pred = tf.cast(y_pred, tf.float32)
     y_true = tf.cast(y_true, tf.float32)
     # 1 when there is object, 0 when there is no object in cell
@@ -51,32 +58,32 @@ def build_model():
     inputs = keras.Input(shape=(IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS))
 
     # Layer 1
-    x = layers.Conv2D(32, 7)(inputs)
+    x = layers.Conv2D(filters=32, kernel_size=7)(inputs)
     x = layers.LeakyReLU(alpha=0.1)(x)
     x = layers.MaxPooling2D(pool_size=(2, 2))(x)
 
     # Layer 2
-    x = layers.Conv2D(32, 5)(x)
+    x = layers.Conv2D(filters=32, kernel_size=5)(x)
     x = layers.LeakyReLU(alpha=0.1)(x)
     x = layers.MaxPooling2D(pool_size=(2, 2))(x)
 
     # Layer 3
-    x = layers.Conv2D(32, 5)(x)
+    x = layers.Conv2D(filters=32, kernel_size=5)(x)
     x = layers.LeakyReLU(alpha=0.1)(x)
     x = layers.MaxPooling2D(pool_size=(2, 2))(x)
 
     # Layer 4
-    x = layers.Conv2D(32, 5)(x)
+    x = layers.Conv2D(filters=32, kernel_size=5)(x)
     x = layers.LeakyReLU(alpha=0.1)(x)
     x = layers.MaxPooling2D(pool_size=(2, 2))(x)
 
     # Layer 5
-    x = layers.Conv2D(32, 5)(x)
+    x = layers.Conv2D(filters=32, kernel_size=5)(x)
     x = layers.LeakyReLU(alpha=0.1)(x)
     x = layers.MaxPooling2D(pool_size=(2, 2))(x)
 
     # Layer 6
-    x = layers.Conv2D(32, 3)(x)
+    x = layers.Conv2D(filters=32, kernel_size=3)(x)
     x = layers.LeakyReLU(alpha=0.1)(x)
     x = layers.MaxPooling2D(pool_size=(2, 2))(x)
 
@@ -84,13 +91,13 @@ def build_model():
     x = layers.Flatten()(x)
     x = layers.Dense(4096, activation='softmax')(x)
     x = layers.LeakyReLU(alpha=0.1)(x)
-    x = layers.Dense(S1 * S2 * T, activation='softmax')(x)
+    x = layers.Dense(S1 * S2 * T, activation='sigmoid')(x)
     outputs = layers.Reshape((S1, S2, T))(x)
 
     model = keras.Model(inputs=inputs, outputs=outputs)
     optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
     # model.compile(loss='mse', optimizer=optimizer, metrics=['mse'])
-    model.compile(loss='mse', optimizer=optimizer)
+    model.compile(loss=mse_loss, optimizer=optimizer)
 
     return model
 
