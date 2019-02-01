@@ -5,7 +5,7 @@ from model.model_fn import *
 from constants import *
 
 def train(model):
-    train_set, val_set = validation_split(load_data())
+    train_set, val_set = validation_split(load_2d_data())
     train_data, train_targets = train_set
 
     callbacks = [

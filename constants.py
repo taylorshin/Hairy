@@ -1,7 +1,7 @@
 import os
 
 BATCH_SIZE = 8
-LEARNING_RATE = 1e-2
+LEARNING_RATE = 1e-4
 OUT_DIR = 'out'
 DATA_DIR = 'data'
 MODEL_FILE = os.path.join(OUT_DIR, 'model.h5')

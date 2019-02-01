@@ -6,10 +6,26 @@ import math
 import h5py
 import numpy as np
 import matplotlib.pyplot as plt
+from PIL import Image
 from constants import *
 from util import *
 
-def load_data():
+def load_3d_data():
+    """
+    Load all the 3d data by concatenating 2d slices
+    """
+    data = []
+
+    try:
+        g_data_dir = 'data/G_data'
+        filenames = os.listdir(g_data_dir)
+        print('FILENAMES: ', filenames)
+    except:
+        print('Unable to load the data.', e)
+
+    return False
+
+def load_2d_data():
     """
     Load all of the images as matrices
     """
@@ -71,7 +87,8 @@ if __name__ == '__main__':
 
     assert os.path.isdir(args.data_dir), 'Could not find the dataset at {}'.format(args.data_dir)
 
-    train_set, val_set = validation_split(load_data())
+    """
+    train_set, val_set = validation_split(load_2d_data())
     data, targets = train_set
     print('DATA: ', data)
     print('TARGETS: ', targets)
@@ -83,3 +100,6 @@ if __name__ == '__main__':
     print('img: ', img.shape, img)
     plt.imshow(img)
     plt.show()
+    """
+
+    load_3d_data()

@@ -123,9 +123,7 @@ def convert_matrix_to_map(labels, conf_thresh=CONFIDENCE_THRESHOLD):
                     y = (box_vals[k + 1])
                     # Width and height values are sometimes negative because of leaky relu
                     w = (box_vals[k + 2])
-                    print('W: ', w)
                     h = (box_vals[k + 3])
-                    print('H: ', h)
                     cell_topleft_x = col * GRID_WIDTH
                     cell_topleft_y = row * GRID_HEIGHT
                     # cell_center_x = cell_topleft_x + GRID_WIDTH / 2
