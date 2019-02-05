@@ -3,3 +3,4 @@ h5py
 tensorflow-gpu
 matplotlib
 opencv-python
+tqdm
