@@ -49,7 +49,7 @@ def bb_iou(box1, box2):
 
     return iou
 
-def convert_map_to_matrix(box_dict):
+def convert_map_to_matrix(box_dict, is_2d_data=True):
     """
     Takes in bounding boxes (dict) extracted from processed data and converts them into a label matrix.
     """
@@ -62,7 +62,10 @@ def convert_map_to_matrix(box_dict):
         # img = labels[i - 1]
         img = labels[i]
         for j, box in enumerate(boxes):
-            x, y, w, h = box
+            if is_2d_data:
+                x, y, w, h = box
+            else:
+                x, y, w, h, c = box
             row = y // GRID_HEIGHT
             col = x // GRID_WIDTH
             # Grid cell center position

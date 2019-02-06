@@ -6,32 +6,39 @@ import math
 import h5py
 import numpy as np
 import matplotlib.pyplot as plt
+import multiprocessing
+from joblib import Parallel, delayed
 from PIL import Image
 from tqdm import tqdm
+
 from constants import *
 from util import *
+
+def load_image(filename):
+    img = Image.open(filename)
+    img.load()
+    img_data = np.asarray(img)
+    return img_data
 
 def load_3d_data(data_dir):
     """
     Load all the 3d data by concatenating 2d slices
     """
-    volume = None
+    filenames = os.listdir(data_dir)
+    filenames = [os.path.join(data_dir, f) for f in filenames if f.endswith('.png')]
+    # Parallel process all of the image loading and concatenating
+    imgs = Parallel(n_jobs=multiprocessing.cpu_count(), backend='threading')(delayed(load_image)(f) for f in filenames)
+    imgs = np.array(imgs)
+    imgs = np.transpose(imgs, (1, 2, 0))
+    return imgs
 
-    try:
-        filenames = os.listdir(data_dir)
-        filenames = [os.path.join(data_dir, f) for f in filenames if f.endswith('.png')]
-        for i, filename in enumerate(tqdm(filenames)):
-            img = Image.open(filename)
-            img.load()
-            img_data = np.asarray(img)[:, :, np.newaxis]
-            if i == 0:
-                volume = img_data
-            else:
-                volume = np.concatenate((volume, img_data), axis=2)
-    except Exception as e:
-        print('Unable to load the data.', e)
-
-    return volume
+def load_labels(dir):
+    tfile = open(dir, 'r')
+    content = tfile.read()
+    box_dict = eval(content)
+    print(sorted(box_dict.keys()))
+    targets = convert_map_to_matrix(box_dict, False)
+    print('TARGETS: ', targets.shape)
 
 def load_2d_data():
     """
@@ -110,4 +117,5 @@ if __name__ == '__main__':
     plt.show()
     """
 
-    load_3d_data('data/G_data')
+    # load_3d_data('data/G_data')
+    load_labels('data/labels/image_boxes_G.txt')
