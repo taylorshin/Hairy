@@ -27,18 +27,22 @@ def load_3d_data(data_dir):
     filenames = os.listdir(data_dir)
     filenames = [os.path.join(data_dir, f) for f in filenames if f.endswith('.png')]
     # Parallel process all of the image loading and concatenating
-    imgs = Parallel(n_jobs=multiprocessing.cpu_count(), backend='threading')(delayed(load_image)(f) for f in filenames)
+    imgs = Parallel(n_jobs=multiprocessing.cpu_count(), prefer='threads')(delayed(load_image)(f) for f in filenames)
     imgs = np.array(imgs)
-    imgs = np.transpose(imgs, (1, 2, 0))
-    return imgs
+    # imgs = np.transpose(imgs, (1, 2, 0))
+    data = []
+    for i in range(20, imgs.shape[0], 20):
+        volume = imgs[i-5:i+5+1, :, :]
+        volume = np.transpose(volume, (1, 2, 0))
+        data.append(volume)
+    return np.array(data)
 
 def load_labels(dir):
     tfile = open(dir, 'r')
     content = tfile.read()
     box_dict = eval(content)
-    print(sorted(box_dict.keys()))
     targets = convert_map_to_matrix(box_dict, False)
-    print('TARGETS: ', targets.shape)
+    return targets[1:]
 
 def load_2d_data():
     """
@@ -117,5 +121,10 @@ if __name__ == '__main__':
     plt.show()
     """
 
-    # load_3d_data('data/G_data')
-    load_labels('data/labels/image_boxes_G.txt')
+    data = load_3d_data('data/G_data')
+    # print('Data: ', data[:, :, ::20].shape)
+    print('Data: ', data.shape)
+    targets = load_labels('data/labels/image_boxes_G.txt')
+    print('Targets: ', targets.shape)
+    # print('Target 0: ', targets[0])
+    

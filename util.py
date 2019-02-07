@@ -2,7 +2,6 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from constants import *
-# from dataset import *
 
 def sigmoid(x):
     return 1.0 / (1.0 + np.exp(-x))
@@ -15,7 +14,7 @@ def draw_boxes(image, boxes):
         y_min = int(y - h / 2.0)
         x_max = int(x + w / 2.0)
         y_max = int(y + h / 2.0)
-        cv2.rectangle(image, (x_min, y_min), (x_max, y_max), (1, 0, 0), 3)
+        cv2.rectangle(image, (x_min, y_min), (x_max, y_max), (255, 0, 0), 3)
     return image
 
 def bb_iou(box1, box2):
