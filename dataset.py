@@ -10,9 +10,23 @@ import multiprocessing
 from joblib import Parallel, delayed
 from PIL import Image
 from tqdm import tqdm
-
 from constants import *
 from util import *
+
+def load_train_set(data_dirs, label_dirs):
+    data = []
+    labels = []
+    for d in data_dirs:
+        data.append(load_3d_data(d))
+    for d in label_dirs:
+        labels.append(load_labels(d))
+    data = np.concatenate(data)
+    labels = np.concatenate(labels)
+    return data, labels
+
+# def load_val_set():
+
+# def load_test_set():
 
 def load_image(filename):
     img = Image.open(filename)
@@ -109,22 +123,20 @@ if __name__ == '__main__':
     """
     train_set, val_set = validation_split(load_2d_data())
     data, targets = train_set
-    print('DATA: ', data)
-    print('TARGETS: ', targets)
     data = np.squeeze(data)
-    # print(val_set)
     # img = np.transpose(data[0], (1, 2, 0))
     img = data[0]
     # img = img[:, :, 0]
-    print('img: ', img.shape, img)
     plt.imshow(img)
     plt.show()
     """
 
-    data = load_3d_data('data/G_data')
-    # print('Data: ', data[:, :, ::20].shape)
-    print('Data: ', data.shape)
-    targets = load_labels('data/labels/image_boxes_G.txt')
-    print('Targets: ', targets.shape)
-    # print('Target 0: ', targets[0])
+    # data = load_3d_data('data/H_data')
+    # print('Data: ', data.shape)
+    # targets = load_labels('data/labels/image_boxes_G.txt')
+    # print('Targets: ', targets.shape)
+
+    data, labels = load_train_set(['data/H_data', 'data/I_data'], ['data/labels/image_boxes_H.txt', 'data/labels/image_boxes_I.txt'])
+    print('data: ', data.shape)
+    print('labels: ', labels.shape)
     

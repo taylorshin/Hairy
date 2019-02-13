@@ -18,8 +18,8 @@ def main():
     # data, targets = val_set
     # data = np.squeeze(data)
 
-    data = load_3d_data('data/G_data')
-    targets = load_labels('data/labels/image_boxes_G.txt')
+    data = load_3d_data('data/J_data')
+    targets = load_labels('data/labels/image_boxes_J.txt')
     print('data: ', data.shape)
     print('targets: ', targets.shape)
 
