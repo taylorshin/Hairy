@@ -6,6 +6,13 @@ from model.model_fn import *
 from constants import *
 from util import *
 
+def get_mean_iou(predictions, labels):
+    """
+    Loop through test set and calculate the mean IOU score
+    """
+    assert len(predictions) == len(labels)
+    # for p, l in zip(predictions, labels):
+
 def main():
     parser = argparse.ArgumentParser(description='Make predictions from trained model')
     parser.add_argument('--img', default=0, type=int, help='Image index')
@@ -23,8 +30,8 @@ def main():
     print('data: ', data.shape)
     print('targets: ', targets.shape)
 
-    index = 0#args.img
-    plt_img = data[index, :, :, 5]
+    index = 0 #args.img
+    plt_img = data[index, :, :, 5].astype(int)
     plt_img = plt_img[:, :, np.newaxis]
     plt_img = np.tile(plt_img, (1, 1, 3))
     # plt_img = np.transpose(plt_img, (2, 0, 1))
@@ -42,11 +49,12 @@ def main():
     # print('Prediction: ', prediction)
 
     # Transform network output to obtain bounding box predictions
-    prediction = tf.math.sigmoid(prediction)
+    # prediction = tf.math.sigmoid(prediction)
 
     sess = tf.Session()
     with sess.as_default():
-        boxes = convert_matrix_to_map(prediction.eval(), args.conf)
+        print('prediction: ', tf.shape(prediction), prediction)
+        boxes = convert_matrix_to_map(prediction, args.conf)
         print('BOXES: ', boxes)
 
         box_img = draw_boxes(plt_img, boxes[0])

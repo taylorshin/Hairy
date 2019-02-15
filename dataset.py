@@ -31,7 +31,7 @@ def load_train_set(data_dirs, label_dirs):
 def load_image(filename):
     img = Image.open(filename)
     img.load()
-    img_data = np.asarray(img)
+    img_data = np.array(img, dtype='float32')
     return img_data
 
 def load_3d_data(data_dir):

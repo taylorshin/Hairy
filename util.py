@@ -1,3 +1,4 @@
+import random
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
@@ -8,14 +9,49 @@ def sigmoid(x):
 
 def draw_boxes(image, boxes):
     image_w, image_h, _ = image.shape
-    for box in boxes:
+    for i, box in enumerate(boxes):
         x, y, w, h = box
         x_min = int(x - w / 2.0)
         y_min = int(y - h / 2.0)
         x_max = int(x + w / 2.0)
         y_max = int(y + h / 2.0)
-        cv2.rectangle(image, (x_min, y_min), (x_max, y_max), (255, 0, 0), 3)
+        # Alternate the color of boxes so that they are easier to distinguish
+        box_color = None
+        if i % 3 == 0:
+            box_color = (255, 0, 0)
+        elif i % 3 == 1:
+            box_color = (0, 255, 0)
+        else:
+            box_color = (0, 0, 255)
+        cv2.rectangle(image, (x_min, y_min), (x_max, y_max), box_color, 3)
     return image
+
+def calculate_iou(true_boxes, pred_boxes):
+    x_min = np.minimum(true_boxes[:, :, :, 0] - (true_boxes[:, :, :, 2] / 2.0), pred_boxes[:, :, :, 0] - (pred_boxes[:, :, :, 2] / 2.0))
+    x_max = np.maximum(true_boxes[:, :, :, 0] + (true_boxes[:, :, :, 2] / 2.0), pred_boxes[:, :, :, 0] + (pred_boxes[:, :, :, 2] / 2.0))
+    y_min = np.minimum(true_boxes[:, :, :, 1] - (true_boxes[:, :, :, 3] / 2.0), pred_boxes[:, :, :, 1] - (pred_boxes[:, :, :, 3] / 2.0))
+    y_max = np.maximum(true_boxes[:, :, :, 1] + (true_boxes[:, :, :, 3] / 2.0), pred_boxes[:, :, :, 1] + (pred_boxes[:, :, :, 3] / 2.0))
+    w1 = true_boxes[:, :, :, 2]
+    h1 = true_boxes[:, :, :, 3]
+    w2 = pred_boxes[:, :, :, 2]
+    h2 = pred_boxes[:, :, :, 3]
+
+    w_union = x_max - x_min
+    h_union = y_max - y_min
+    w_intersect = w1 + w2 - w_union
+    h_intersect = h1 + h2 - h_union
+
+    w_intersect = np.maximum(w_intersect, np.zeros(w_intersect.shape))
+    h_intersect = np.maximum(h_intersect, np.zeros(h_intersect.shape))
+
+    intersect_area = w_intersect * h_intersect
+
+    true_boxes_area = w1 * h1
+    pred_boxes_area = w2 * h2
+
+    iou = intersect_area / (true_boxes_area + pred_boxes_area - intersect_area)
+
+    return iou
 
 def bb_iou(box1, box2):
     # Compute min and max of x and y values from both boxes
@@ -152,16 +188,26 @@ def build_or_load(allow_load=True):
     return model
 
 if __name__ == '__main__':
-    tfile = open('image_boxes.txt', 'r')
+    tfile = open('data/image_boxes.txt', 'r')
     content = tfile.read()
     boxes = eval(content)
 
     # IOU Test
-    box1 = [5, 5, 4, 4]
-    box2 = [7, 7, 4, 4]
-    # IOU should be ~0.1429
-    iou = bb_iou(box1, box2)
+    tbox1 = [0, 0, 4, 4]
+    tbox2 = [5, 5, 4, 4]
+    pbox1 = [7, 7, 4, 4]
+    pbox2 = [5, 5, 5, 5]
+    true_boxes = np.array([[[tbox1, tbox2]]])
+    pred_boxes = np.array([[[pbox1, pbox2]]])
+    print('true boxes shape: ', true_boxes.shape)
+    print('pred boxes shape: ', pred_boxes.shape)
+    iou = calculate_iou(true_boxes, pred_boxes)
     print('IOU: ', iou)
+    
+    iou1 = bb_iou(tbox1, pbox1)
+    iou2 = bb_iou(tbox2, pbox2)
+    print('Individual IOU 1: ', iou1)
+    print('Individual IOU 2: ', iou2)
 
     # ds = HairFollicleDataset('data.hdf5')
     # index = 0

@@ -1,3 +1,4 @@
+import argparse
 import numpy as np
 import tensorflow as tf
 from dataset import *
@@ -8,8 +9,6 @@ def train(model):
     # train_data = load_3d_data('data/G_data')
     # train_targets = load_labels('data/labels/image_boxes_G.txt')
     train_data, train_targets = load_train_set(['data/H_data', 'data/I_data'], ['data/labels/image_boxes_H.txt', 'data/labels/image_boxes_I.txt'])
-    print('train data: ', train_data.shape)
-    print('train targets: ', train_targets.shape)
 
     callbacks = [
         tf.keras.callbacks.ModelCheckpoint(MODEL_FILE, monitor='loss', save_best_only=True, save_weights_only=True),
@@ -20,17 +19,15 @@ def train(model):
     model.fit(train_data, train_targets, batch_size=BATCH_SIZE, epochs=200, callbacks=callbacks)#, validation_data=val_set)
 
 def main():
-    # Turn on eager execution for debugging
-    # tf.enable_eager_execution()
+    parser = argparse.ArgumentParser(description='Trains the model')
+    parser.add_argument('--debug', default=False, type=bool, help='Debug mode')
+    args = parser.parse_args()
+
+    if args.debug:
+        # Turn on eager execution for debugging
+        tf.enable_eager_execution()
 
     model = build_model()
-
-    """
-    model = Hairy()
-    optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
-    model.compile(loss='mse', optimizer=optimizer)
-    """
-
     model.summary()
     train(model)
 
