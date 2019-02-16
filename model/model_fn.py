@@ -48,8 +48,8 @@ def yolo_loss(y_true, y_pred):
     one_noobj = 1.0 - one_obj
 
     # 1st term of loss function: x, y coordinates relative to grid cell
-    # pred_xy = tf.math.sigmoid(y_pred[..., :2])
-    pred_xy = y_pred[..., :2]
+    pred_xy = tf.sigmoid(y_pred[..., :2])
+    # pred_xy = y_pred[..., :2]
     true_xy = y_true[..., :2]
     xy_term = keras.backend.pow(true_xy - pred_xy, 2)
     xy_term = one_obj * (xy_term[..., 0] + xy_term[..., 1])
@@ -58,8 +58,8 @@ def yolo_loss(y_true, y_pred):
     # print('xy term: ', xy_term)
 
     # 2nd term of loss function: width and height of bounding box
-    # pred_wh = tf.math.sigmoid(y_pred[..., 2:4])
-    pred_wh = y_pred[..., 2:4]
+    pred_wh = tf.sigmoid(y_pred[..., 2:4])
+    # pred_wh = y_pred[..., 2:4]
     pred_wh = keras.backend.sqrt(pred_wh)
     true_wh = y_true[..., 2:4]
     true_wh = keras.backend.sqrt(true_wh)
@@ -70,7 +70,7 @@ def yolo_loss(y_true, y_pred):
     # print('wh term: ', wh_term)
 
     # 3rd and 4th terms of loss function: confidence when there is an object and vice versa
-    pred_c = calculate_iou_scores(y_true[..., :4], y_pred[..., :4])
+    pred_c = calculate_iou_scores(y_true[..., :4], tf.sigmoid(y_pred[..., :4]))
     true_c = y_true[..., 4]
     square_diff_c = keras.backend.pow(true_c - pred_c, 2)
     c_term_1 = one_obj * square_diff_c
@@ -87,49 +87,56 @@ def build_model_yolo():
     # Input layer
     inputs = keras.Input(shape=(IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS))
 
+    """
+    Section 1
+    """
     # Layer 1
-    x = layers.Conv2D(filters=64, kernel_size=7, strides=2)(inputs)
+    x = layers.Conv2D(filters=16, kernel_size=3)(inputs)
     x = layers.LeakyReLU(alpha=0.1)(x)
     x = layers.MaxPooling2D(pool_size=(2, 2))(x)
 
     # Layer 2
-    x = layers.Conv2D(filters=32, kernel_size=5)(x)
-    x = layers.LeakyReLU(alpha=0.1)(x)
-    x = layers.MaxPooling2D(pool_size=(2, 2))(x)
-
-    # Layer 3
-    x = layers.Conv2D(filters=32, kernel_size=5)(x)
-    x = layers.LeakyReLU(alpha=0.1)(x)
-    x = layers.MaxPooling2D(pool_size=(2, 2))(x)
-
-    # Layer 4
-    x = layers.Conv2D(filters=32, kernel_size=5)(x)
-    x = layers.LeakyReLU(alpha=0.1)(x)
-    x = layers.MaxPooling2D(pool_size=(2, 2))(x)
-
-    # Layer 5
-    x = layers.Conv2D(filters=32, kernel_size=5)(x)
-    x = layers.LeakyReLU(alpha=0.1)(x)
-    x = layers.MaxPooling2D(pool_size=(2, 2))(x)
-
-    # Layer 6
     x = layers.Conv2D(filters=32, kernel_size=3)(x)
     x = layers.LeakyReLU(alpha=0.1)(x)
     x = layers.MaxPooling2D(pool_size=(2, 2))(x)
 
-    # Classification layers
-    x = layers.Flatten()(x)
-    # x = layers.Dense(4096, activation='softmax')(x)
-    x = layers.Dense(4096, activation=None)(x)
+    # Layer 3
+    x = layers.Conv2D(filters=64, kernel_size=3)(x)
     x = layers.LeakyReLU(alpha=0.1)(x)
-    # x = layers.Dense(S1 * S2 * T, activation='sigmoid')(x)
-    x = layers.Dense(S1 * S2 * T, activation=None)(x)
-    outputs = layers.Reshape((S1, S2, T))(x)
+    x = layers.MaxPooling2D(pool_size=(2, 2))(x)
+
+    # Layer 4
+    x = layers.Conv2D(filters=128, kernel_size=3)(x)
+    x = layers.LeakyReLU(alpha=0.1)(x)
+    x = layers.MaxPooling2D(pool_size=(2, 2))(x)
+
+    # Layer 5
+    x = layers.Conv2D(filters=128, kernel_size=3)(x)
+    x = layers.LeakyReLU(alpha=0.1)(x)
+    x = layers.MaxPooling2D(pool_size=(2, 2))(x)
+
+    # Layer 6
+    x = layers.Conv2D(filters=256, kernel_size=2)(x)
+    x = layers.LeakyReLU(alpha=0.1)(x)
+    x = layers.MaxPooling2D(pool_size=(2, 2))(x)
+
+    # Layer 7
+    outputs = layers.Conv2D(filters=T, kernel_size=3)(x)
+    # x = layers.LeakyReLU(alpha=0.1)(x)
+
+    """
+    Classification layers
+    """
+    # x = layers.Flatten()(x)
+    # x = layers.Dense(4096, activation=None)(x)
+    # x = layers.LeakyReLU(alpha=0.1)(x)
+    # x = layers.Dense(S1 * S2 * T, activation=None)(x)
+    # outputs = layers.Reshape((S1, S2, T))(x)
 
     model = keras.Model(inputs=inputs, outputs=outputs)
     optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
-    model.compile(loss='mse', optimizer=optimizer, metrics=['mse'])
-    # model.compile(loss=mse_loss, optimizer=optimizer)
+    # model.compile(loss='mse', optimizer=optimizer, metrics=['mse'])
+    model.compile(loss=yolo_loss, optimizer=optimizer)
 
     return model
 

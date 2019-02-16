@@ -12,7 +12,7 @@ def train(model):
 
     callbacks = [
         tf.keras.callbacks.ModelCheckpoint(MODEL_FILE, monitor='loss', save_best_only=True, save_weights_only=True),
-        tf.keras.callbacks.EarlyStopping(monitor='loss', patience=10),
+        # tf.keras.callbacks.EarlyStopping(monitor='loss', patience=10),
         tf.keras.callbacks.TensorBoard(log_dir=LOG_DIR, histogram_freq=0)
     ]
 

@@ -30,7 +30,7 @@ def main():
     print('DATA: ', data.shape)
     print('TARGETS: ', targets.shape)
 
-    index = 1 #args.img
+    index = 3 #args.img
     plt_img = data[index, :, :, 5]#.astype(int)
     plt_img = plt_img[:, :, np.newaxis]
     plt_img = np.tile(plt_img, (1, 1, 3))
@@ -49,12 +49,12 @@ def main():
     # print('Prediction: ', prediction)
 
     # Transform network output to obtain bounding box predictions
-    # prediction = tf.math.sigmoid(prediction)
+    prediction = tf.sigmoid(prediction)
 
     sess = tf.Session()
     with sess.as_default():
         # print('prediction: ', tf.shape(prediction), prediction)
-        boxes = convert_matrix_to_map(prediction, args.conf)
+        boxes = convert_matrix_to_map(prediction.eval(), args.conf)
         print('BOXES: ', boxes)
 
         box_img = draw_boxes(plt_img, boxes[0])
