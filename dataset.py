@@ -49,7 +49,8 @@ def load_3d_data(data_dir):
         volume = imgs[i-5:i+5+1, :, :]
         volume = np.transpose(volume, (1, 2, 0))
         data.append(volume)
-    return np.array(data)
+    # Normalize pixels values to [0, 1]
+    return np.array(data) / 255
 
 def load_labels(dir):
     tfile = open(dir, 'r')
@@ -137,6 +138,6 @@ if __name__ == '__main__':
     # print('Targets: ', targets.shape)
 
     data, labels = load_train_set(['data/H_data', 'data/I_data'], ['data/labels/image_boxes_H.txt', 'data/labels/image_boxes_I.txt'])
-    print('data: ', data.shape)
-    print('labels: ', labels.shape)
+    print('data: ', data.shape, data)
+    # print('labels: ', labels.shape, labels)
     

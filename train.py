@@ -27,7 +27,7 @@ def main():
         # Turn on eager execution for debugging
         tf.enable_eager_execution()
 
-    model = build_model()
+    model = build_model_yolo()
     model.summary()
     train(model)
 

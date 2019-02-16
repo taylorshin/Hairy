@@ -25,17 +25,17 @@ def main():
     # data, targets = val_set
     # data = np.squeeze(data)
 
-    data = load_3d_data('data/J_data')
-    targets = load_labels('data/labels/image_boxes_J.txt')
-    print('data: ', data.shape)
-    print('targets: ', targets.shape)
+    data = load_3d_data('data/H_data')
+    targets = load_labels('data/labels/image_boxes_H.txt')
+    print('DATA: ', data.shape)
+    print('TARGETS: ', targets.shape)
 
-    index = 0 #args.img
-    plt_img = data[index, :, :, 5].astype(int)
+    index = 1 #args.img
+    plt_img = data[index, :, :, 5]#.astype(int)
     plt_img = plt_img[:, :, np.newaxis]
     plt_img = np.tile(plt_img, (1, 1, 3))
     # plt_img = np.transpose(plt_img, (2, 0, 1))
-    # print('plt img: ', plt_img.shape)
+    # print('plt img: ', plt_img)
     # plt.imshow(plt_img)
     # plt.show()
 
@@ -53,7 +53,7 @@ def main():
 
     sess = tf.Session()
     with sess.as_default():
-        print('prediction: ', tf.shape(prediction), prediction)
+        # print('prediction: ', tf.shape(prediction), prediction)
         boxes = convert_matrix_to_map(prediction, args.conf)
         print('BOXES: ', boxes)
 

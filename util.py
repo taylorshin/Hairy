@@ -177,8 +177,8 @@ def convert_matrix_to_map(labels, conf_thresh=CONFIDENCE_THRESHOLD):
     return box_dict
 
 def build_or_load(allow_load=True):
-    from model.model_fn import build_model
-    model = build_model()
+    from model.model_fn import build_model_yolo
+    model = build_model_yolo()
     if allow_load:
         try:
             model.load_weights(MODEL_FILE)
