@@ -83,7 +83,7 @@ def yolo_loss(y_true, y_pred):
     loss = xy_term + wh_term + c_term
     return loss
 
-def build_model_yolo():
+def build_model_yolo_lite():
     """
     YOLO-LITE Architecture
     """
