@@ -1,11 +1,12 @@
 import os
 
 BATCH_SIZE = 8
-LEARNING_RATE = 1e-5
+LEARNING_RATE = 1e-4
 OUT_DIR = 'out'
 DATA_DIR = 'data'
 MODEL_FILE = os.path.join(OUT_DIR, 'model.h5')
 LOG_DIR = os.path.join(OUT_DIR, 'logs')
+PREDICT_DIR = os.path.join(OUT_DIR, 'predicted_images')
 
 # Constants for YOLO algorithm
 S1 = 7

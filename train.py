@@ -16,7 +16,7 @@ def train(model):
         tf.keras.callbacks.TensorBoard(log_dir=LOG_DIR, histogram_freq=0)
     ]
 
-    model.fit(train_data, train_targets, batch_size=BATCH_SIZE, epochs=200, callbacks=callbacks)#, validation_data=val_set)
+    model.fit(train_data, train_targets, batch_size=BATCH_SIZE, epochs=1000, callbacks=callbacks)#, validation_data=val_set)
 
 def main():
     parser = argparse.ArgumentParser(description='Trains the model')

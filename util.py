@@ -146,8 +146,8 @@ def convert_matrix_to_map(labels, conf_thresh=CONFIDENCE_THRESHOLD):
 
         max_c = np.max(label[:, :, 4::5])
         min_c = np.min(label[:, :, 4::5])
-        print('MAX C: {}'.format(max_c))
-        print('MIN C: {}'.format(min_c))
+        # print('MAX C: {}'.format(max_c))
+        # print('MIN C: {}'.format(min_c))
 
         for row in range(num_grid_rows):
             for col in range(num_grid_cols):
