@@ -24,7 +24,7 @@ def predict_data_set(model, data, labels):
         og_img = np.tile(og_img[:, :, np.newaxis], (1, 1, 3))
         inputs = tf.expand_dims(data[i, :, :, :], 0)
         prediction = model.predict(inputs, steps=1)
-        boxes = convert_matrix_to_map(prediction, 0.25)
+        boxes = convert_matrix_to_map(prediction, 0.4)
         box_img = draw_boxes(og_img * 255, boxes[0])
         box_img = np.squeeze(box_img)
         box_img = box_img.astype('uint8')
@@ -50,7 +50,7 @@ def predict_data_point(model, data, labels, index):
     # Transform network output to obtain bounding box predictions
     # prediction = tf.sigmoid(prediction)
 
-    boxes = convert_matrix_to_map(prediction, args.conf)
+    boxes = convert_matrix_to_map(prediction)#, args.conf)
     print('BOXES: ', boxes)
 
     box_img = draw_boxes(og_img, boxes[0])
@@ -60,20 +60,23 @@ def predict_data_point(model, data, labels, index):
 
 def main():
     parser = argparse.ArgumentParser(description='Make predictions from trained model')
+    parser.add_argument('--model', default=MODEL_DIR, type=str, help='Path to model file')
     parser.add_argument('--img', default=0, type=int, help='Image index')
     parser.add_argument('--conf', default=0.5, type=float, help='Confidence threshold')
     args = parser.parse_args()
 
     # Load the model
-    model = build_or_load()
+    model = build_or_load(args.model)
 
-    data = load_3d_data('data/H_data')
-    targets = load_labels('data/labels/image_boxes_H.txt')
+    data = load_3d_data('data/G_data')
+    targets = load_labels('data/labels/image_boxes_G.txt')
     print('DATA: ', data.shape)
     print('TARGETS: ', targets.shape)
 
     # Predict bounding boxes
     predict_data_set(model, data, targets)
+    # predict_data_point(model, data, targets, 8)
+
 
 if __name__ == '__main__':
     main()

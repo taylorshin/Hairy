@@ -1,16 +1,16 @@
 import os
 
 BATCH_SIZE = 8
-LEARNING_RATE = 1e-4
+LEARNING_RATE = 1e-5
 OUT_DIR = 'out'
 DATA_DIR = 'data'
-MODEL_FILE = os.path.join(OUT_DIR, 'model.h5')
+MODEL_DIR = os.path.join(OUT_DIR, 'model.h5')
 LOG_DIR = os.path.join(OUT_DIR, 'logs')
-PREDICT_DIR = os.path.join(OUT_DIR, 'predicted_images')
+PREDICT_DIR = os.path.join(OUT_DIR, 'predictions/train_set_G_mse_2000/')
 
 # Constants for YOLO algorithm
-S1 = 7
-S2 = 12
+S1 = 6
+S2 = 11
 B = 1
 C = 0
 T = B * (5 + C)

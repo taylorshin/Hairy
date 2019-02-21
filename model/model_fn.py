@@ -83,7 +83,7 @@ def yolo_loss(y_true, y_pred):
     loss = xy_term + wh_term + c_term
     return loss
 
-def build_model_yolo_lite():
+def build_model():
     """
     YOLO-LITE Architecture
     """
@@ -111,72 +111,27 @@ def build_model_yolo_lite():
     x = layers.MaxPooling2D(pool_size=(2, 2))(x)
 
     # Layer 5
-    x = layers.Conv2D(filters=128, kernel_size=3)(x)
+    x = layers.Conv2D(filters=256, kernel_size=3)(x)
     x = layers.LeakyReLU(alpha=0.1)(x)
     x = layers.MaxPooling2D(pool_size=(2, 2))(x)
 
     # Layer 6
-    x = layers.Conv2D(filters=256, kernel_size=2)(x)
+    x = layers.Conv2D(filters=512, kernel_size=3)(x)
     x = layers.LeakyReLU(alpha=0.1)(x)
     x = layers.MaxPooling2D(pool_size=(2, 2))(x)
 
     # Layer 7
-    outputs = layers.Conv2D(filters=T, kernel_size=3)(x)
+    x = layers.Conv2D(filters=512, kernel_size=3)(x)
+    x = layers.LeakyReLU(alpha=0.1)(x)
+    # x = layers.MaxPooling2D(pool_size=(2, 2))(x)
+
+    # Layer 8
+    outputs = layers.Conv2D(filters=T, kernel_size=1)(x)
 
     # Assemble the model
     model = keras.Model(inputs=inputs, outputs=outputs)
     optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
     # model.compile(loss='mse', optimizer=optimizer, metrics=['mse'])
     model.compile(loss=mse_loss, optimizer=optimizer)
-
-    return model
-
-def build_model():
-    # Input layer
-    inputs = keras.Input(shape=(IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS))
-
-    # Layer 1
-    x = layers.Conv2D(filters=32, kernel_size=7)(inputs)
-    x = layers.LeakyReLU(alpha=0.1)(x)
-    x = layers.MaxPooling2D(pool_size=(2, 2))(x)
-
-    # Layer 2
-    x = layers.Conv2D(filters=32, kernel_size=5)(x)
-    x = layers.LeakyReLU(alpha=0.1)(x)
-    x = layers.MaxPooling2D(pool_size=(2, 2))(x)
-
-    # Layer 3
-    x = layers.Conv2D(filters=32, kernel_size=5)(x)
-    x = layers.LeakyReLU(alpha=0.1)(x)
-    x = layers.MaxPooling2D(pool_size=(2, 2))(x)
-
-    # Layer 4
-    x = layers.Conv2D(filters=32, kernel_size=5)(x)
-    x = layers.LeakyReLU(alpha=0.1)(x)
-    x = layers.MaxPooling2D(pool_size=(2, 2))(x)
-
-    # Layer 5
-    x = layers.Conv2D(filters=32, kernel_size=5)(x)
-    x = layers.LeakyReLU(alpha=0.1)(x)
-    x = layers.MaxPooling2D(pool_size=(2, 2))(x)
-
-    # Layer 6
-    x = layers.Conv2D(filters=32, kernel_size=3)(x)
-    x = layers.LeakyReLU(alpha=0.1)(x)
-    x = layers.MaxPooling2D(pool_size=(2, 2))(x)
-
-    # Classification layers
-    x = layers.Flatten()(x)
-    # x = layers.Dense(4096, activation='softmax')(x)
-    x = layers.Dense(4096, activation=None)(x)
-    x = layers.LeakyReLU(alpha=0.1)(x)
-    # x = layers.Dense(S1 * S2 * T, activation='sigmoid')(x)
-    x = layers.Dense(S1 * S2 * T, activation=None)(x)
-    outputs = layers.Reshape((S1, S2, T))(x)
-
-    model = keras.Model(inputs=inputs, outputs=outputs)
-    optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
-    model.compile(loss='mse', optimizer=optimizer, metrics=['mse'])
-    # model.compile(loss=mse_loss, optimizer=optimizer)
 
     return model

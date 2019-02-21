@@ -113,6 +113,7 @@ def validation_split(data_xy, split=0.2):
 
     return (train_data, train_targets), (val_data, val_targets)
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_dir', default=DATA_DIR, help='Directory with the hair follicle dataset')

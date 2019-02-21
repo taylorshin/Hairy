@@ -1,7 +1,11 @@
+import os
+import glob
 import random
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+from tqdm import tqdm
+from PIL import Image
 from constants import *
 
 def sigmoid(x):
@@ -148,6 +152,11 @@ def convert_matrix_to_map(labels, conf_thresh=CONFIDENCE_THRESHOLD):
         min_c = np.min(label[:, :, 4::5])
         # print('MAX C: {}'.format(max_c))
         # print('MIN C: {}'.format(min_c))
+        # c_list = label[:, :, 4::5]
+        # c_list = np.squeeze(c_list)
+        # print('c list: ', c_list, c_list.shape)
+        # top_c_list = c_list.argsort()[-5:][::-1]
+        # print("Top C's: ", top_c_list)
 
         for row in range(num_grid_rows):
             for col in range(num_grid_cols):
@@ -176,16 +185,27 @@ def convert_matrix_to_map(labels, conf_thresh=CONFIDENCE_THRESHOLD):
                     box_dict[l].append([x, y, w, h])
     return box_dict
 
-def build_or_load(allow_load=True):
-    from model.model_fn import build_model_yolo_lite
-    model = build_model_yolo_lite()
+def build_or_load(model_dir=MODEL_DIR, allow_load=True):
+    from model.model_fn import build_model
+    model = build_model()
     if allow_load:
         try:
-            model.load_weights(MODEL_FILE)
+            model.load_weights(model_dir)
             print('Loaded model from file.')
         except:
             print('Unable to load model from file.')
     return model
+
+def crop_images(old_dir, new_dir):
+    """
+    Crop images in specified directory to the standard size of 1000x700 and save them into the new directory
+    """
+    for path in tqdm(glob.glob(os.path.join(old_dir, '*.png'))):
+        img = Image.open(path)
+        filename = path.split('\\')[1]
+        cropped_img = img.crop((0, 0, 1000, 700))
+        cropped_img.save(new_dir + '/' + filename, 'PNG')
+
 
 if __name__ == '__main__':
     tfile = open('data/image_boxes.txt', 'r')
@@ -215,3 +235,5 @@ if __name__ == '__main__':
     # boxed_image = draw_boxes(image, boxes[index + 1])
     # plt.imshow(image)
     # plt.show()
+
+    crop_images('data/G_data', 'data/G_data_new')
