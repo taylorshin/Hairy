@@ -12,6 +12,9 @@ def sigmoid(x):
     return 1.0 / (1.0 + np.exp(-x))
 
 def draw_boxes(image, boxes):
+    """
+    Draw boxes in the given image and return the modified image
+    """
     image_w, image_h, _ = image.shape
     for i, box in enumerate(boxes):
         x, y, w, h = box
@@ -92,14 +95,15 @@ def convert_map_to_matrix(box_dict, is_2d_data=True):
     """
     Takes in bounding boxes (dict) extracted from processed data and converts them into a label matrix.
     """
-    n = len(box_dict)
-    labels = np.zeros((n, S1, S2, T))
+    labels = np.zeros((len(box_dict), S1, S2, T))
     # TODO: Remove this special code for missing data in old dataset
     i = 0
     # for i, boxes in box_dict.items():
-    for _, boxes in box_dict.items():
+    # print('box dict items: ', box_dict.items())
+    for img_id, boxes in box_dict.items():
         # img = labels[i - 1]
         img = labels[i]
+        # print('IMG: ', img, img.shape)
         for j, box in enumerate(boxes):
             if is_2d_data:
                 x, y, w, h = box
@@ -130,6 +134,7 @@ def convert_map_to_matrix(box_dict, is_2d_data=True):
             box_data[4] = 1
         # TODO: Remove this special code for missing data in old dataset
         i += 1
+
     # Relative x and y are normalized by grid cell size
     labels[:, :, :, 0::5] = labels[:, :, :, 0::5] / GRID_WIDTH
     labels[:, :, :, 1::5] = labels[:, :, :, 1::5] / GRID_HEIGHT
@@ -150,8 +155,8 @@ def convert_matrix_to_map(labels, conf_thresh=CONFIDENCE_THRESHOLD):
 
         max_c = np.max(label[:, :, 4::5])
         min_c = np.min(label[:, :, 4::5])
-        # print('MAX C: {}'.format(max_c))
-        # print('MIN C: {}'.format(min_c))
+        print('MAX C: {}'.format(max_c))
+        print('MIN C: {}'.format(min_c))
         # c_list = label[:, :, 4::5]
         # c_list = np.squeeze(c_list)
         # print('c list: ', c_list, c_list.shape)
@@ -208,6 +213,7 @@ def crop_images(old_dir, new_dir):
 
 
 if __name__ == '__main__':
+    """
     tfile = open('data/image_boxes.txt', 'r')
     content = tfile.read()
     boxes = eval(content)
@@ -228,12 +234,17 @@ if __name__ == '__main__':
     iou2 = bb_iou(tbox2, pbox2)
     print('Individual IOU 1: ', iou1)
     print('Individual IOU 2: ', iou2)
+    """
 
-    # ds = HairFollicleDataset('data.hdf5')
-    # index = 0
-    # image = np.transpose(ds[index][0], (1, 2, 0))
-    # boxed_image = draw_boxes(image, boxes[index + 1])
-    # plt.imshow(image)
-    # plt.show()
-
-    crop_images('data/G_data', 'data/G_data_new')
+    # Test for convert_map_to_matrix
+    box_dict = {
+        '0020': [
+            [676, 338, 65, 237, 0],
+            [404, 285, 65, 237, 1]
+        ],
+        '0140': [
+            [145, 242, 60, 253, 1]
+        ]
+    }
+    labels = convert_map_to_matrix(box_dict, False)
+    print('Labels: ', labels, labels.shape)

@@ -31,7 +31,7 @@ def predict_data_set(model, data, labels):
         save_img = Image.fromarray(box_img, 'RGB')
         save_img.save(PREDICT_DIR + str(i) + '.jpg', 'JPEG')
 
-def predict_data_point(model, data, labels, index):
+def predict_data_point(model, data, labels, index, conf_thresh):
     """
     Predict bounding boxes around hair follicles for a single data point at index
     """
@@ -50,7 +50,7 @@ def predict_data_point(model, data, labels, index):
     # Transform network output to obtain bounding box predictions
     # prediction = tf.sigmoid(prediction)
 
-    boxes = convert_matrix_to_map(prediction)#, args.conf)
+    boxes = convert_matrix_to_map(prediction, conf_thresh)
     print('BOXES: ', boxes)
 
     box_img = draw_boxes(og_img, boxes[0])
@@ -61,21 +61,25 @@ def predict_data_point(model, data, labels, index):
 def main():
     parser = argparse.ArgumentParser(description='Make predictions from trained model')
     parser.add_argument('--model', default=MODEL_DIR, type=str, help='Path to model file')
-    parser.add_argument('--img', default=0, type=int, help='Image index')
+    parser.add_argument('--img', default=-1, type=int, help='Image index')
     parser.add_argument('--conf', default=0.5, type=float, help='Confidence threshold')
     args = parser.parse_args()
 
     # Load the model
     model = build_or_load(args.model)
 
-    data = load_3d_data('data/G_data')
-    targets = load_labels('data/labels/image_boxes_G.txt')
+    data = load_3d_data('data/J_data')
+    targets = load_labels('data/labels/image_boxes_J.txt')
     print('DATA: ', data.shape)
     print('TARGETS: ', targets.shape)
 
     # Predict bounding boxes
-    predict_data_set(model, data, targets)
-    # predict_data_point(model, data, targets, 8)
+    if args.img < 0:
+        # Make predictions on all images
+        predict_data_set(model, data, targets)
+    else:
+        # Make prediction on single image
+        predict_data_point(model, data, targets, args.img, args.conf)
 
 
 if __name__ == '__main__':

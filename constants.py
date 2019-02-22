@@ -1,12 +1,12 @@
 import os
 
 BATCH_SIZE = 8
-LEARNING_RATE = 1e-5
+LEARNING_RATE = 1e-4
 OUT_DIR = 'out'
 DATA_DIR = 'data'
 MODEL_DIR = os.path.join(OUT_DIR, 'model.h5')
 LOG_DIR = os.path.join(OUT_DIR, 'logs')
-PREDICT_DIR = os.path.join(OUT_DIR, 'predictions/train_set_G_mse_2000/')
+PREDICT_DIR = os.path.join(OUT_DIR, 'predictions/test_set_J_mse_300/')
 
 # Constants for YOLO algorithm
 S1 = 6

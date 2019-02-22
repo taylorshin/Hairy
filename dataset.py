@@ -22,6 +22,8 @@ def load_train_set(data_dirs, label_dirs):
         labels.append(load_labels(d))
     data = np.concatenate(data)
     labels = np.concatenate(labels)
+    print('DATA: ', data.shape)
+    print('LABELS: ', labels.shape)
     return data, labels
 
 # def load_val_set():
@@ -56,6 +58,8 @@ def load_labels(dir):
     tfile = open(dir, 'r')
     content = tfile.read()
     box_dict = eval(content)
+    # Sort dictionary by key because 3D data labels are out of order
+    box_dict = dict(sorted(box_dict.items()))
     targets = convert_map_to_matrix(box_dict, False)
     return targets[1:]
 
