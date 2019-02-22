@@ -146,10 +146,10 @@ def convert_matrix_to_map(labels, conf_thresh=CONFIDENCE_THRESHOLD):
         num_grid_rows = label.shape[0]
         num_grid_cols = label.shape[1]
 
-        max_c = np.max(label[:, :, 4::5])
-        min_c = np.min(label[:, :, 4::5])
-        # print('MAX C: {}'.format(max_c))
-        # print('MIN C: {}'.format(min_c))
+        max_c = np.max(sigmoid(label[:, :, 4::5]))
+        min_c = np.min(sigmoid(label[:, :, 4::5]))
+        print('MAX C: {}'.format(max_c))
+        print('MIN C: {}'.format(min_c))
         # c_list = label[:, :, 4::5]
         # c_list = np.squeeze(c_list)
         # print('c list: ', c_list, c_list.shape)
@@ -160,24 +160,24 @@ def convert_matrix_to_map(labels, conf_thresh=CONFIDENCE_THRESHOLD):
             for col in range(num_grid_cols):
                 box_vals = label[row, col]
                 for k in range(0, T, 5):
-                    c = (box_vals[k + 4])
+                    c = sigmoid(box_vals[k + 4])
                     # Skip grid if conf prob is less than the threshold
                     if c <= conf_thresh:
                         continue
-                    x = (box_vals[k])
-                    y = (box_vals[k + 1])
+                    x = sigmoid(box_vals[k])
+                    y = sigmoid(box_vals[k + 1])
                     # Width and height values are sometimes negative because of leaky relu
-                    w = (box_vals[k + 2])
-                    h = (box_vals[k + 3])
+                    w = sigmoid(box_vals[k + 2])
+                    h = sigmoid(box_vals[k + 3])
                     cell_topleft_x = col * GRID_WIDTH
                     cell_topleft_y = row * GRID_HEIGHT
                     # cell_center_x = cell_topleft_x + GRID_WIDTH / 2
                     # cell_center_y = cell_topleft_y + GRID_HEIGHT / 2
                     # Unnormalize values
                     # x = int(cell_center_x - (x * (GRID_WIDTH / 2)))
-                    x = int(cell_topleft_x + x * GRID_WIDTH)
+                    x = int(cell_topleft_x + (x * GRID_WIDTH))
                     # y = int(cell_center_y - (y * (GRID_HEIGHT / 2)))
-                    y = int(cell_topleft_y + y * GRID_HEIGHT)
+                    y = int(cell_topleft_y + (y * GRID_HEIGHT))
                     w = int(w * IMG_WIDTH)
                     h = int(h * IMG_HEIGHT)
                     box_dict[l].append([x, y, w, h])

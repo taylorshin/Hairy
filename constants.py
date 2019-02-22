@@ -6,7 +6,7 @@ OUT_DIR = 'out'
 DATA_DIR = 'data'
 MODEL_DIR = os.path.join(OUT_DIR, 'model.h5')
 LOG_DIR = os.path.join(OUT_DIR, 'logs')
-PREDICT_DIR = os.path.join(OUT_DIR, 'predictions/test_set_J_mse_300/')
+PREDICT_DIR = os.path.join(OUT_DIR, 'predictions/test_set_J_yolo_200/')
 
 # Constants for YOLO algorithm
 S1 = 6

@@ -22,8 +22,6 @@ def load_train_set(data_dirs, label_dirs):
         labels.append(load_labels(d))
     data = np.concatenate(data)
     labels = np.concatenate(labels)
-    print('DATA: ', data.shape)
-    print('LABELS: ', labels.shape)
     return data, labels
 
 # def load_val_set():

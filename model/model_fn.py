@@ -47,37 +47,41 @@ def yolo_loss(y_true, y_pred):
     # 1 when there is no object, 0 when there is object
     one_noobj = 1.0 - one_obj
 
-    # 1st term of loss function: x, y coordinates relative to grid cell
+    """
+    1st term of loss function: x, y coordinates relative to grid cell
+    """
     pred_xy = tf.sigmoid(y_pred[..., :2])
-    # pred_xy = y_pred[..., :2]
     true_xy = y_true[..., :2]
-    xy_term = keras.backend.pow(true_xy - pred_xy, 2)
+    xy_term = tf.square(true_xy - pred_xy)
     xy_term = one_obj * (xy_term[..., 0] + xy_term[..., 1])
-    xy_term = keras.backend.sum(xy_term)
+    xy_term = tf.reduce_sum(xy_term)
     xy_term = LAMBDA_COORD * xy_term
     # print('xy term: ', xy_term)
 
-    # 2nd term of loss function: width and height of bounding box
+    """
+    2nd term of loss function: width and height of bounding box
+    """
     pred_wh = tf.sigmoid(y_pred[..., 2:4])
-    # pred_wh = y_pred[..., 2:4]
-    pred_wh = keras.backend.sqrt(pred_wh)
+    pred_wh = tf.sqrt(pred_wh)
     true_wh = y_true[..., 2:4]
-    true_wh = keras.backend.sqrt(true_wh)
-    wh_term = keras.backend.pow(true_wh - pred_wh, 2)
+    true_wh = tf.sqrt(true_wh)
+    wh_term = tf.square(true_wh - pred_wh)
     wh_term = one_obj * (wh_term[..., 0] + wh_term[..., 1])
-    wh_term = keras.backend.sum(wh_term)
+    wh_term = tf.reduce_sum(wh_term)
     wh_term = LAMBDA_COORD * wh_term
     # print('wh term: ', wh_term)
 
-    # 3rd and 4th terms of loss function: confidence when there is an object and vice versa
-    pred_c = calculate_iou_scores(y_true[..., :4], tf.sigmoid(y_pred[..., :4]))
-    true_c = y_true[..., 4]
-    square_diff_c = keras.backend.pow(true_c - pred_c, 2)
-    c_term_1 = one_obj * square_diff_c
-    c_term_1 = keras.backend.sum(c_term_1)
-    c_term_2 = one_noobj * square_diff_c
-    c_term_2 = LAMBDA_NOOBJ * keras.backend.sum(c_term_2)
+    """
+    3rd and 4th terms of loss function: confidence when there is an object and vice versa
+    """
+    iou_scores = calculate_iou_scores(y_true[..., :4], tf.sigmoid(y_pred[..., :4]))
+    pred_box_c = tf.sigmoid(y_pred[..., 4])
+    true_box_c = y_true[..., 4] * iou_scores
+    square_diff_c = tf.square(true_box_c - pred_box_c)
+    c_term_1 = tf.reduce_sum(one_obj * square_diff_c)
+    c_term_2 = LAMBDA_NOOBJ * tf.reduce_sum(one_noobj * square_diff_c)
     c_term = c_term_1 + c_term_2
+    # print('c term: ', c_term)
 
     # Combine all terms of the yolo loss function
     loss = xy_term + wh_term + c_term
@@ -132,6 +136,6 @@ def build_model():
     model = keras.Model(inputs=inputs, outputs=outputs)
     optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
     # model.compile(loss='mse', optimizer=optimizer, metrics=['mse'])
-    model.compile(loss=mse_loss, optimizer=optimizer)
+    model.compile(loss=yolo_loss, optimizer=optimizer)
 
     return model
