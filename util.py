@@ -2,6 +2,7 @@ import os
 import glob
 import random
 import cv2
+import unittest
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
@@ -96,14 +97,8 @@ def convert_map_to_matrix(box_dict, is_2d_data=True):
     Takes in bounding boxes (dict) extracted from processed data and converts them into a label matrix.
     """
     labels = np.zeros((len(box_dict), S1, S2, T))
-    # TODO: Remove this special code for missing data in old dataset
-    i = 0
-    # for i, boxes in box_dict.items():
-    # print('box dict items: ', box_dict.items())
-    for img_id, boxes in box_dict.items():
-        # img = labels[i - 1]
+    for i, (img_id, boxes) in enumerate(box_dict.items()):
         img = labels[i]
-        # print('IMG: ', img, img.shape)
         for j, box in enumerate(boxes):
             if is_2d_data:
                 x, y, w, h = box
@@ -132,8 +127,6 @@ def convert_map_to_matrix(box_dict, is_2d_data=True):
             box_data[3] = h
             # Confidence level
             box_data[4] = 1
-        # TODO: Remove this special code for missing data in old dataset
-        i += 1
 
     # Relative x and y are normalized by grid cell size
     labels[:, :, :, 0::5] = labels[:, :, :, 0::5] / GRID_WIDTH
@@ -155,8 +148,8 @@ def convert_matrix_to_map(labels, conf_thresh=CONFIDENCE_THRESHOLD):
 
         max_c = np.max(label[:, :, 4::5])
         min_c = np.min(label[:, :, 4::5])
-        print('MAX C: {}'.format(max_c))
-        print('MIN C: {}'.format(min_c))
+        # print('MAX C: {}'.format(max_c))
+        # print('MIN C: {}'.format(min_c))
         # c_list = label[:, :, 4::5]
         # c_list = np.squeeze(c_list)
         # print('c list: ', c_list, c_list.shape)
@@ -212,6 +205,31 @@ def crop_images(old_dir, new_dir):
         cropped_img.save(new_dir + '/' + filename, 'PNG')
 
 
+class TestUtilFunctions(unittest.TestCase):
+    def test_map_matrix_conversion(self):
+        box_dict = {
+            '0020': [
+                [676, 338, 65, 237, 0],
+                [404, 285, 65, 237, 1]
+            ],
+            '0140': [
+                [145, 242, 60, 253, 1]
+            ]
+        }
+
+        expected = {
+            0: [
+                [404, 285, 65, 237],
+                [676, 338, 65, 237]
+            ],
+            1: [
+                [145, 242, 60, 253]
+            ]
+        }
+
+        self.assertEqual(convert_matrix_to_map(convert_map_to_matrix(box_dict, False)), expected)
+
+
 if __name__ == '__main__':
     """
     tfile = open('data/image_boxes.txt', 'r')
@@ -236,15 +254,5 @@ if __name__ == '__main__':
     print('Individual IOU 2: ', iou2)
     """
 
-    # Test for convert_map_to_matrix
-    box_dict = {
-        '0020': [
-            [676, 338, 65, 237, 0],
-            [404, 285, 65, 237, 1]
-        ],
-        '0140': [
-            [145, 242, 60, 253, 1]
-        ]
-    }
-    labels = convert_map_to_matrix(box_dict, False)
-    print('Labels: ', labels, labels.shape)
+    # Run unit tests
+    unittest.main()

@@ -24,7 +24,7 @@ def predict_data_set(model, data, labels):
         og_img = np.tile(og_img[:, :, np.newaxis], (1, 1, 3))
         inputs = tf.expand_dims(data[i, :, :, :], 0)
         prediction = model.predict(inputs, steps=1)
-        boxes = convert_matrix_to_map(prediction, 0.4)
+        boxes = convert_matrix_to_map(prediction, 0.2)
         box_img = draw_boxes(og_img * 255, boxes[0])
         box_img = np.squeeze(box_img)
         box_img = box_img.astype('uint8')
