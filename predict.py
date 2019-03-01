@@ -15,7 +15,7 @@ def get_mean_iou(predictions, labels):
     assert len(predictions) == len(labels)
     # for p, l in zip(predictions, labels):
 
-def predict_data_set(model, data, labels):
+def predict_data_set(model, data, labels, conf_thresh):
     """
     Loop through (test) dataset, make bounding box predictions on each image, and save the updated images
     """
@@ -24,7 +24,7 @@ def predict_data_set(model, data, labels):
         og_img = np.tile(og_img[:, :, np.newaxis], (1, 1, 3))
         inputs = tf.expand_dims(data[i, :, :, :], 0)
         prediction = model.predict(inputs, steps=1)
-        boxes = convert_matrix_to_map(prediction, 0.015)
+        boxes = convert_matrix_to_map(prediction, conf_thresh)
         box_img = draw_boxes(og_img * 255, boxes[0])
         box_img = np.squeeze(box_img)
         box_img = box_img.astype('uint8')
@@ -68,13 +68,13 @@ def main():
     # Load the model
     model = build_or_load(args.model)
 
-    data = load_3d_data('data/J_data')
-    targets = load_labels('data/labels/image_boxes_J.txt')
+    data = load_3d_data('data/H_data')
+    targets = load_labels('data/labels/image_boxes_H.txt')
 
     # Predict bounding boxes
     if args.img < 0:
         # Make predictions on all images
-        predict_data_set(model, data, targets)
+        predict_data_set(model, data, targets, 0.01)
     else:
         # Make prediction on single image
         predict_data_point(model, data, targets, args.img, args.conf)

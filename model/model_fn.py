@@ -136,6 +136,6 @@ def build_model():
     model = keras.Model(inputs=inputs, outputs=outputs)
     optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
     # model.compile(loss='mse', optimizer=optimizer, metrics=['mse'])
-    model.compile(loss=yolo_loss, optimizer=optimizer)
+    model.compile(loss=mse_loss, optimizer=optimizer)
 
     return model

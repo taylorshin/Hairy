@@ -4,6 +4,7 @@ import os
 import time
 import math
 import h5py
+import unittest
 import numpy as np
 import matplotlib.pyplot as plt
 import multiprocessing
@@ -13,13 +14,89 @@ from tqdm import tqdm
 from constants import *
 from util import *
 
+def shift_image_and_label(img, label, dx, dy):
+    """
+    Data augmentation: shift image and its label
+    """
+    # Shift image
+    img = np.roll(img, dy, axis=0)
+    img = np.roll(img, dx, axis=1)
+
+    if dy > 0:
+        img[:dy, :] = 0
+    elif dy < 0:
+        img[dy:, :] = 0
+    if dx > 0:
+        img[:, :dx] = 0
+    elif dx < 0:
+        img[:, dx:] = 0
+
+    # plt.imshow(img)
+    # plt.show()
+
+    # Shift label
+    print('label: ', label)
+    x, y, w, h, c = label
+    label = [x + dx, y + dy, w, h, c]
+
+    return img, label
+
+def shift_img(img, dx, dy):
+    img = np.roll(img, dy, axis=0)
+    img = np.roll(img, dx, axis=1)
+
+    if dy > 0:
+        img[:dy, :] = 0
+    elif dy < 0:
+        img[dy:, :] = 0
+    if dx > 0:
+        img[:, :dx] = 0
+    elif dx < 0:
+        img[:, dx:] = 0
+
+    # plt.imshow(img)
+    # plt.show()
+
+    return img
+
+def shift_labels(labels, dx, dy):
+    shifted_labels = []
+    for label in labels:
+        x, y, w, h, c = label
+        label = [x + dx, y + dy, w, h, c]
+        shifted_labels.append(label)
+
+    return shifted_labels
+
 def load_train_set(data_dirs, label_dirs):
     data = []
     labels = []
-    for d in data_dirs:
-        data.append(load_3d_data(d))
-    for d in label_dirs:
-        labels.append(load_labels(d))
+
+    for data_dir, label_dir in zip(data_dirs, label_dirs):
+        # Randomly select img/label indices to augment
+        aug_indices = []
+        samples = np.random.uniform(size=NUM_ITEMS_PER_DIR)
+        for i, s in enumerate(samples):
+            if s < AUG_PROB:
+                aug_indices.append(i)
+
+        # print('aug indices: ', aug_indices)
+
+        # Set shift amounts
+        shift_amounts = []
+        for i in range(len(aug_indices)):
+            dx = random.randint(-PIXEL_SHIFT_X, PIXEL_SHIFT_X)
+            dy = random.randint(0, PIXEL_SHIFT_Y)
+            shift_amounts.append((dx, dy))
+
+        # print('shift amounts: ', shift_amounts)
+
+        ### Load data ###
+        data.append(load_3d_data(data_dir, aug_indices, shift_amounts))
+
+        ### Load labels ###
+        labels.append(load_labels(label_dir, aug_indices, shift_amounts))
+
     data = np.concatenate(data)
     labels = np.concatenate(labels)
     return data, labels
@@ -34,10 +111,13 @@ def load_image(filename):
     img_data = np.array(img, dtype='float32')
     return img_data
 
-def load_3d_data(data_dir):
+def load_3d_data(data_dir, aug_indices=[], shift_amounts=[]):
     """
     Load all the 3d data by concatenating 2d slices
     """
+    # Train mode
+    is_train = len(aug_indices) > 0
+
     filenames = os.listdir(data_dir)
     filenames = [os.path.join(data_dir, f) for f in filenames if f.endswith('.png')]
     # Parallel process all of the image loading and concatenating
@@ -45,21 +125,58 @@ def load_3d_data(data_dir):
     imgs = np.array(imgs)
     # imgs = np.transpose(imgs, (1, 2, 0))
     data = []
-    for i in range(20, imgs.shape[0], 20):
-        volume = imgs[i-5:i+5+1, :, :]
-        volume = np.transpose(volume, (1, 2, 0))
-        data.append(volume)
+    # TODO: Remove this exclusion of the first image/label which doesn't have context frames before
+    j = 0
+    for i in range(LABEL_FRAME_INTERVAL, imgs.shape[0], LABEL_FRAME_INTERVAL):
+        # Randomly augment image
+        if is_train and j in aug_indices:
+            index = aug_indices.index(j)
+            dx, dy = shift_amounts[index]
+            img = shift_img(imgs[i, :, :], dx, dy)
+            # print('dx: {}, dy: {}'.format(dx, dy))
+            # plt.imshow(img)
+            # plt.show()
+            img = np.expand_dims(img, axis=0)
+            frames_before = imgs[i-CONTEXT_FRAMES:i, :, :]
+            frames_after = imgs[i+1:i+CONTEXT_FRAMES+1, :, :]
+            volume = np.concatenate((frames_before, img, frames_after))
+            volume = np.transpose(volume, (1, 2, 0))
+            data.append(volume)
+        else:
+            volume = imgs[i-CONTEXT_FRAMES:i+CONTEXT_FRAMES+1, :, :]
+            volume = np.transpose(volume, (1, 2, 0))
+            data.append(volume)
+        j += 1
     # Normalize pixels values to [0, 1]
     return np.array(data) / 255
 
-def load_labels(dir):
-    tfile = open(dir, 'r')
+def load_labels(label_dir, aug_indices=[], shift_amounts=[]):
+    # Only do data augmentation during training
+    is_train = len(aug_indices) > 0
+
+    tfile = open(label_dir, 'r')
     content = tfile.read()
     box_dict = eval(content)
     # Sort dictionary by key because 3D data labels are out of order
     box_dict = dict(sorted(box_dict.items()))
-    targets = convert_map_to_matrix(box_dict, False)
-    return targets[1:]
+    # TODO: Remove this exclusion of the first image/label which doesn't have context frames before
+    del box_dict['0000']
+
+    # Augment the labels whose indices are in the aug_indices list
+    aug_box_dict = {}
+    for i, key in enumerate(box_dict.keys()):
+        if is_train and i in aug_indices:
+            index = aug_indices.index(i)
+            dx, dy = shift_amounts[index]
+            # Shift all labels in image not just one
+            labels = shift_labels(box_dict[key], dx, dy)
+            aug_box_dict[key] = labels
+        else:
+            aug_box_dict[key] = box_dict[key]
+    targets = convert_map_to_matrix(aug_box_dict, False)
+    # TODO: Remove this exclusion of the first image/label which doesn't have context frames before
+    # return targets[1:]
+    return targets
 
 def load_2d_data():
     """
@@ -115,6 +232,26 @@ def validation_split(data_xy, split=0.2):
 
     return (train_data, train_targets), (val_data, val_targets)
 
+class TestUtilFunctions(unittest.TestCase):
+    def test_shift_image_and_label(self):
+        img = np.reshape(np.arange(10), (2, 5))
+
+        label = np.array([200, 300, 123, 456])
+
+        expected_img = [
+            [0, 0, 0, 1, 2],
+            [0, 0, 5, 6, 7]
+        ]
+
+        expected_label = np.array([202, 300, 123, 456])
+
+        out_img, out_label = shift_image_and_label(img, label, 2, 0)
+        diff_img = out_img - expected_img
+        diff_label = out_label - expected_label
+
+        self.assertTrue(np.all(diff_img == 0))
+        self.assertTrue(np.all(diff_label == 0))
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -135,12 +272,25 @@ if __name__ == '__main__':
     plt.show()
     """
 
-    # data = load_3d_data('data/H_data')
-    # print('Data: ', data.shape)
-    # targets = load_labels('data/labels/image_boxes_G.txt')
-    # print('Targets: ', targets.shape)
+    # Test the shifting of images/labels
+    dx = random.randint(-PIXEL_SHIFT_X, PIXEL_SHIFT_X)
+    dy = random.randint(0, PIXEL_SHIFT_Y)
+    print('dx: {}, dy: {}'.format(dx, dy))
+    index = 3
+    data = load_3d_data('data/H_data', [index], [(dx, dy)])
+    labels = load_labels('data/labels/image_boxes_H.txt', [index], [(dx, dy)])
+    img = data[index, :, :, 5]
+    img = img[:, :, np.newaxis]
+    img = np.tile(img, (1, 1, 3))
+    boxes = convert_matrix_to_map(labels, conf_thresh=CONFIDENCE_THRESHOLD)
+    box_img = draw_boxes(img, boxes[index])
+    box_img = np.squeeze(box_img)
+    plt.imshow(box_img)
+    plt.show()
 
-    data, labels = load_train_set(['data/H_data', 'data/I_data'], ['data/labels/image_boxes_H.txt', 'data/labels/image_boxes_I.txt'])
-    print('data: ', data.shape, data)
+    # data, labels = load_train_set(['data/H_data', 'data/I_data'], ['data/labels/image_boxes_H.txt', 'data/labels/image_boxes_I.txt'])
+    # print('data: ', data.shape, data)
     # print('labels: ', labels.shape, labels)
-    
+
+    # Run unit tests
+    # unittest.main()

@@ -16,7 +16,7 @@ def draw_boxes(image, boxes):
     """
     Draw boxes in the given image and return the modified image
     """
-    image_w, image_h, _ = image.shape
+    # image_w, image_h, _ = image.shape
     for i, box in enumerate(boxes):
         x, y, w, h = box
         x_min = int(x - w / 2.0)
@@ -104,8 +104,14 @@ def convert_map_to_matrix(box_dict, is_2d_data=True):
                 x, y, w, h = box
             else:
                 x, y, w, h, c = box
+
             row = y // GRID_HEIGHT
             col = x // GRID_WIDTH
+            
+            # Check out of bounds
+            if row < 0 or row >= S1 or col < 0 or col >= S2:
+                continue
+
             # Grid cell center position
             # cell_x = col * GRID_WIDTH + GRID_WIDTH / 2
             # cell_y = row * GRID_HEIGHT + GRID_HEIGHT / 2
@@ -146,10 +152,13 @@ def convert_matrix_to_map(labels, conf_thresh=CONFIDENCE_THRESHOLD):
         num_grid_rows = label.shape[0]
         num_grid_cols = label.shape[1]
 
-        max_c = np.max(sigmoid(label[:, :, 4::5]))
-        min_c = np.min(sigmoid(label[:, :, 4::5]))
+        # max_c = np.max(sigmoid(label[:, :, 4::5]))
+        # min_c = np.min(sigmoid(label[:, :, 4::5]))
+        max_c = np.max(label[:, :, 4::5])
+        min_c = np.min(label[:, :, 4::5])
         print('MAX C: {}'.format(max_c))
         print('MIN C: {}'.format(min_c))
+
         # c_list = label[:, :, 4::5]
         # c_list = np.squeeze(c_list)
         # print('c list: ', c_list, c_list.shape)
@@ -160,15 +169,20 @@ def convert_matrix_to_map(labels, conf_thresh=CONFIDENCE_THRESHOLD):
             for col in range(num_grid_cols):
                 box_vals = label[row, col]
                 for k in range(0, T, 5):
-                    c = sigmoid(box_vals[k + 4])
+                    # c = sigmoid(box_vals[k + 4])
+                    c = box_vals[k + 4]
                     # Skip grid if conf prob is less than the threshold
                     if c <= conf_thresh:
                         continue
-                    x = sigmoid(box_vals[k])
-                    y = sigmoid(box_vals[k + 1])
+                    # x = sigmoid(box_vals[k])
+                    # y = sigmoid(box_vals[k + 1])
+                    x = box_vals[k]
+                    y = box_vals[k + 1]
                     # Width and height values are sometimes negative because of leaky relu
-                    w = sigmoid(box_vals[k + 2])
-                    h = sigmoid(box_vals[k + 3])
+                    # w = sigmoid(box_vals[k + 2])
+                    # h = sigmoid(box_vals[k + 3])
+                    w = box_vals[k + 2]
+                    h = box_vals[k + 3]
                     cell_topleft_x = col * GRID_WIDTH
                     cell_topleft_y = row * GRID_HEIGHT
                     # cell_center_x = cell_topleft_x + GRID_WIDTH / 2
