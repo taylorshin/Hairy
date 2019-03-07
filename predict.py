@@ -68,16 +68,16 @@ def main():
     # Load the model
     model = build_or_load(args.model)
 
-    data = load_3d_data('data/H_data')
-    targets = load_labels('data/labels/image_boxes_H.txt')
+    data = load_3d_data('data/G_data')
+    labels = load_labels('data/labels/image_boxes_G.txt')
 
     # Predict bounding boxes
     if args.img < 0:
         # Make predictions on all images
-        predict_data_set(model, data, targets, 0.01)
+        predict_data_set(model, data, labels, 0.2)
     else:
         # Make prediction on single image
-        predict_data_point(model, data, targets, args.img, args.conf)
+        predict_data_point(model, data, labels, args.img, args.conf)
 
 
 if __name__ == '__main__':

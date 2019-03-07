@@ -127,7 +127,6 @@ def build_model():
     # Layer 7
     x = layers.Conv2D(filters=512, kernel_size=3)(x)
     x = layers.LeakyReLU(alpha=0.1)(x)
-    # x = layers.MaxPooling2D(pool_size=(2, 2))(x)
 
     # Layer 8
     outputs = layers.Conv2D(filters=T, kernel_size=1)(x)
