@@ -31,7 +31,7 @@ LABEL_FRAME_INTERVAL = 20
 CONTEXT_FRAMES = 5
 PIXEL_SHIFT_X = 100
 PIXEL_SHIFT_Y = 200
-DATA_AUG_PROB = 0.8
+DATA_AUG_PROB = 0.6
 
 # TODO: Figure out way to remove need for this constant
 NUM_ITEMS_PER_DIR = 50

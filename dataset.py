@@ -37,10 +37,17 @@ def shift_labels(labels, dx, dy):
     """
     Shift a set of labels by dx pixels horizontally and dy pixels vertically
     """
-    shifted_labels = np.array(labels)
-    shifted_labels[:, 0] += dx
-    shifted_labels[:, 1] += dy
-    return shifted_labels.tolist()
+    # Code commented out doesn't work for some reason...
+    # shifted_labels = np.array(labels)
+    # shifted_labels[:, 0] += dx
+    # shifted_labels[:, 1] += dy
+    # return shifted_labels.tolist()
+    shifted_labels = []
+    for label in labels:
+        x, y, w, h, c = label
+        label = [x + dx, y + dy, w, h, c]
+        shifted_labels.append(label)
+    return shifted_labels
 
 def load_train_set(data_dirs, label_dirs, enable_data_aug=False):
     """
@@ -55,6 +62,7 @@ def load_train_set(data_dirs, label_dirs, enable_data_aug=False):
 
         if enable_data_aug:
             # Randomly select img/label indices to augment
+            aug_indices = []
             samples = np.random.uniform(size=NUM_ITEMS_PER_DIR)
             for i, s in enumerate(samples):
                 if s < DATA_AUG_PROB:
