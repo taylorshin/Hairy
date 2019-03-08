@@ -4,3 +4,5 @@ tensorflow-gpu
 matplotlib
 opencv-python
 tqdm
+argparse
+Pillow

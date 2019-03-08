@@ -161,6 +161,9 @@ def load_3d_data(data_dir, aug_indices=[], shift_amounts=[]):
     return np.array(data) / 255
 
 def load_labels(label_dir, aug_indices=[], shift_amounts=[]):
+    """
+    Load the labels for 3D data
+    """
     # Only do data augmentation during training
     is_train = len(aug_indices) > 0
 
@@ -183,9 +186,9 @@ def load_labels(label_dir, aug_indices=[], shift_amounts=[]):
             aug_box_dict[key] = labels
         else:
             aug_box_dict[key] = box_dict[key]
+
+    # Convert label dictionary to matrix to feed into network
     labels = convert_map_to_matrix(aug_box_dict, False)
-    # TODO: Remove this exclusion of the first image/label which doesn't have context frames before
-    # return labels[1:]
     return labels
 
 def load_2d_data():

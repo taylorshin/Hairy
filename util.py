@@ -16,7 +16,6 @@ def draw_boxes(image, boxes):
     """
     Draw boxes in the given image and return the modified image
     """
-    # image_w, image_h, _ = image.shape
     for i, box in enumerate(boxes):
         x, y, w, h = box
         x_min = int(x - w / 2.0)

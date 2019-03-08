@@ -61,6 +61,7 @@ def predict_data_point(model, data, labels, index, conf_thresh):
 def main():
     parser = argparse.ArgumentParser(description='Make predictions from trained model')
     parser.add_argument('--model', default=MODEL_DIR, type=str, help='Path to model file')
+    parser.add_argument('--data', default='G', type=str, help='Set of data to make predictions on (H, G, I, J)')
     parser.add_argument('--img', default=-1, type=int, help='Image index')
     parser.add_argument('--conf', default=0.5, type=float, help='Confidence threshold')
     args = parser.parse_args()
@@ -68,13 +69,13 @@ def main():
     # Load the model
     model = build_or_load(args.model)
 
-    data = load_3d_data('data/G_data')
-    labels = load_labels('data/labels/image_boxes_G.txt')
+    data = load_3d_data('data/' + args.data + '_data')
+    labels = load_labels('data/labels/image_boxes_' + args.data + '.txt')
 
     # Predict bounding boxes
     if args.img < 0:
         # Make predictions on all images
-        predict_data_set(model, data, labels, 0.2)
+        predict_data_set(model, data, labels, args.conf)
     else:
         # Make prediction on single image
         predict_data_point(model, data, labels, args.img, args.conf)
