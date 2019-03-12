@@ -8,11 +8,156 @@ import unittest
 import numpy as np
 import matplotlib.pyplot as plt
 import multiprocessing
+import tensorflow as tf
+from tensorflow import keras
 from joblib import Parallel, delayed
 from PIL import Image
 from tqdm import tqdm
 from constants import *
 from util import *
+
+class DataGenerator(keras.utils.Sequence):
+
+    def __init__(self, data_dirs, label_files, batch_size=BATCH_SIZE, shuffle=True, enable_data_aug=True):
+        print('Loading data...')
+        # Load images
+        data = []
+        for data_dir in data_dirs:
+            data.append(load_3d_data(data_dir))
+        data = np.concatenate(data)
+
+        # Load labels
+        labels = get_label_list(label_files)
+        
+        # List of image/label indices
+        indices = list(range(len(labels)))
+
+        self.data = data
+        self.labels = labels
+        self.indices = indices
+        self.batch_size = batch_size
+        self.shuffle = shuffle
+        self.enable_data_aug = enable_data_aug
+        self.on_epoch_end()
+
+    def __len__(self):
+        ### Return the number of batches per epoch ###
+        return int(np.floor(len(self.labels) / self.batch_size))
+
+    def __getitem__(self, index):
+        ### Generate one batch of data ###
+        indices = self.indices[index * self.batch_size : (index + 1) * self.batch_size]
+        # Create placeholders for x and y so original data is not modified
+        imgs = np.copy(self.data[indices])
+        list_label_set = np.copy(self.labels[indices])
+
+        # Randomly augment data/labels
+        if self.enable_data_aug and np.random.random() < DATA_AUG_PROB:
+            dx = random.randint(-PIXEL_SHIFT_X, PIXEL_SHIFT_X)
+            dy = random.randint(0, PIXEL_SHIFT_Y)
+
+            # Augment batch of images
+            imgs = shift_img_batch(imgs, dx, dy)
+
+            # Augment batch of labels
+            aug_labels = []
+            for labels in list_label_set:
+                aug_labels.append(shift_labels(labels, dx, dy))
+            list_label_set = aug_labels
+
+        x = np.array(imgs)
+        y = convert_labels_to_matrix(list_label_set)
+        return x, y
+
+    def on_epoch_end(self):
+        ### Updates indices after each epoch ###
+        self.indices = list(range(len(self.labels)))
+        if self.shuffle:
+            np.random.shuffle(self.indices)
+
+
+def convert_labels_to_matrix(list_label_set):
+    """
+    Converts a list of sets of labels to matrix form
+    [x, y, w, h, c] -> matrix form
+    """
+    label_matrix = np.zeros((len(list_label_set), S1, S2, T))
+
+    for i, label_set in enumerate(list_label_set):
+        img = label_matrix[i]
+        # Box and label are synonymous at this point
+        for j, box in enumerate(label_set):
+            x, y, w, h, c = box
+            row = y // GRID_HEIGHT
+            col = x // GRID_WIDTH
+            
+            # Check out of bounds
+            if row < 0 or row >= S1 or col < 0 or col >= S2:
+                continue
+
+            # Grid cell top left position
+            cell_x = col * GRID_WIDTH
+            cell_y = row * GRID_HEIGHT
+            # B * (5 + C) vector
+            box_data = img[row, col]
+            # Relative x from the top left corner of the grid cell
+            box_data[0] = x - cell_x
+            # Relative y
+            box_data[1] = y - cell_y
+            # Width
+            box_data[2] = w
+            # Height
+            box_data[3] = h
+            # Confidence level
+            box_data[4] = 1
+
+    # Relative x and y are normalized by grid cell size
+    label_matrix[:, :, :, 0::5] = label_matrix[:, :, :, 0::5] / GRID_WIDTH
+    label_matrix[:, :, :, 1::5] = label_matrix[:, :, :, 1::5] / GRID_HEIGHT
+    # Normalize bounding box width/height by image width/height
+    label_matrix[:, :, :, 2::5] = label_matrix[:, :, :, 2::5] / IMG_WIDTH
+    label_matrix[:, :, :, 3::5] = label_matrix[:, :, :, 3::5] / IMG_HEIGHT
+
+    return label_matrix
+
+def get_label_list(label_files):
+    """
+    Return a list of every label in each label file
+    """
+    labels = []
+    for label_file in label_files:
+        tfile = open(label_file, 'r')
+        content = tfile.read()
+        box_dict = eval(content)
+        # Sort dictionary by key because 3D data labels are out of order
+        box_dict = dict(sorted(box_dict.items()))
+        # TODO: Remove this exclusion of the first image/label which doesn't have context frames before
+        del box_dict['0000']
+        # Add each list of boxes to the overall labels list
+        for key in box_dict.keys():
+            labels.append(np.array(box_dict[key]))
+    return np.array(labels)
+
+def shift_img_batch(batch, dx, dy):
+    """
+    Shift batch (8, 700, 1000, 11) of images by dx pixels horizontally and dy pixels vertically
+    and fill the void parts of the image with the min pixel value
+    """
+    min_pixel = np.min(batch)
+    batch = np.transpose(batch, (0, 3, 1, 2))
+    batch = np.roll(batch, [dy, dx], axis=(2, 3))
+
+    if dy > 0:
+        batch[:, :, :dy, :] = min_pixel
+    elif dy < 0:
+        batch[:, :, dy:, :] = min_pixel
+    if dx > 0:
+        batch[:, :, :, :dx] = min_pixel
+    elif dx < 0:
+        batch[:, :, :, dx:] = min_pixel
+
+    batch = np.transpose(batch, (0, 2, 3, 1))
+    return batch
 
 def shift_img(img, dx, dy):
     """
@@ -49,51 +194,6 @@ def shift_labels(labels, dx, dy):
         shifted_labels.append(label)
     return shifted_labels
 
-def load_train_set(data_dirs, label_dirs, enable_data_aug=False):
-    """
-    Load the images and labels of the train set
-    """
-    data = []
-    labels = []
-
-    for data_dir, label_dir in zip(data_dirs, label_dirs):
-        aug_indices = []
-        shift_amounts = []
-
-        if enable_data_aug:
-            # Randomly select img/label indices to augment
-            aug_indices = []
-            samples = np.random.uniform(size=NUM_ITEMS_PER_DIR)
-            for i, s in enumerate(samples):
-                if s < DATA_AUG_PROB:
-                    aug_indices.append(i)
-
-            # Set shift amounts
-            for i in range(len(aug_indices)):
-                dx = random.randint(-PIXEL_SHIFT_X, PIXEL_SHIFT_X)
-                dy = random.randint(0, PIXEL_SHIFT_Y)
-                shift_amounts.append((dx, dy))
-
-        ### Load data ###
-        data.append(load_3d_data(data_dir, aug_indices, shift_amounts))
-
-        ### Load labels ###
-        labels.append(load_labels(label_dir, aug_indices, shift_amounts))
-
-    data = np.concatenate(data)
-    labels = np.concatenate(labels)
-
-    # The mean and std of normalized pixel values of all training images
-    # print('MEAN: {}, STD: {}, MIN: {}, MAX: {}'.format(np.mean(data), np.std(data), np.min(data), np.max(data)))
-
-    return data, labels
-
-# TODO: validation set loader
-# def load_val_set():
-
-# TODO: test set loader
-# def load_test_set():
-
 def load_image(filename):
     """
     Load an image from a file
@@ -103,13 +203,10 @@ def load_image(filename):
     img_data = np.array(img, dtype='float32')
     return img_data
 
-def load_3d_data(data_dir, aug_indices=[], shift_amounts=[]):
+def load_3d_data(data_dir):
     """
     Load all the 3d data by concatenating 2d slices
     """
-    # Allow data augmentation only in train mode
-    is_train = len(aug_indices) > 0
-
     filenames = os.listdir(data_dir)
     filenames = [os.path.join(data_dir, f) for f in filenames if f.endswith('.png')]
     # Parallel process all of the image loading and concatenating
@@ -118,132 +215,32 @@ def load_3d_data(data_dir, aug_indices=[], shift_amounts=[]):
 
     data = []
     # TODO: Remove this exclusion of the first image/label which doesn't have context frames before
-    for a, i in enumerate(range(LABEL_FRAME_INTERVAL, imgs.shape[0], LABEL_FRAME_INTERVAL)):
-        if is_train and a in aug_indices:
-            # Augment the images in the aug_indices list
-            index = aug_indices.index(a)
-            dx, dy = shift_amounts[index]
-            aug_img = shift_img(imgs[i, :, :], dx, dy)
-            # print('dx: {}, dy: {}'.format(dx, dy))
-            # plt.imshow(img)
-            # plt.show()
-            aug_img = np.expand_dims(aug_img, axis=0)
-
-            # TODO: Make function that augments list of images
-            ### Also augment the rest of the frames in the volume PART 1 ###
-            frames_before = imgs[i-CONTEXT_FRAMES:i, :, :]
-            aug_frames_before = []
-            for frame in frames_before:
-                aug_frame = shift_img(frame, dx, dy)
-                aug_frame = np.expand_dims(aug_frame, axis=0)
-                aug_frames_before.append(aug_frame)
-            aug_frames_before = np.vstack(aug_frames_before)
-
-            ### Also augment the rest of the frames in the volume PART 2 ###
-            frames_after = imgs[i+1:i+CONTEXT_FRAMES+1, :, :]
-            aug_frames_after = []
-            for frame in frames_after:
-                aug_frame = shift_img(frame, dx, dy)
-                aug_frame = np.expand_dims(aug_frame, axis=0)
-                aug_frames_after.append(aug_frame)
-            aug_frames_after = np.vstack(aug_frames_after)
-
-            volume = np.concatenate((aug_frames_before, aug_img, aug_frames_after))
-            volume = np.transpose(volume, (1, 2, 0))
-            data.append(volume)
-        else:
-            # No data augmentation
-            volume = imgs[i-CONTEXT_FRAMES:i+CONTEXT_FRAMES+1, :, :]
-            volume = np.transpose(volume, (1, 2, 0))
-            data.append(volume)
+    for i in range(LABEL_FRAME_INTERVAL, imgs.shape[0], LABEL_FRAME_INTERVAL):
+        volume = imgs[i-CONTEXT_FRAMES:i+CONTEXT_FRAMES+1, :, :]
+        volume = np.transpose(volume, (1, 2, 0))
+        data.append(volume)
 
     # Normalize pixels values to [0, 1]
-    return np.array(data) / 255
+    return np.array(data) / 255.0
 
-def load_labels(label_dir, aug_indices=[], shift_amounts=[]):
+def verify_data_generator(generator):
     """
-    Load the labels for 3D data
+    Verifies that the data is correctly generated an augmented
     """
-    # Only do data augmentation during training
-    is_train = len(aug_indices) > 0
-
-    tfile = open(label_dir, 'r')
-    content = tfile.read()
-    box_dict = eval(content)
-    # Sort dictionary by key because 3D data labels are out of order
-    box_dict = dict(sorted(box_dict.items()))
-    # TODO: Remove this exclusion of the first image/label which doesn't have context frames before
-    del box_dict['0000']
-
-    # Augment the labels whose indices are in the aug_indices list
-    aug_box_dict = {}
-    for i, key in enumerate(box_dict.keys()):
-        if is_train and i in aug_indices:
-            index = aug_indices.index(i)
-            dx, dy = shift_amounts[index]
-            # Shift all labels in image not just one
-            labels = shift_labels(box_dict[key], dx, dy)
-            aug_box_dict[key] = labels
-        else:
-            aug_box_dict[key] = box_dict[key]
-
-    # Convert label dictionary to matrix to feed into network
-    labels = convert_map_to_matrix(aug_box_dict, False)
-    return labels
-
-def load_2d_data():
-    """
-    Load all of the images as matrices
-    """
-    data = []
-    labels = []
-
-    try:
-        hfile = h5py.File('data/data.hdf5', 'r')
-        keys = sorted(list(hfile.keys()), key=lambda k: int(k))
-        # TODO: add back empty arrays for img 33 and 173 in txt file
-        # CROP 2 PIXELS FROM LEFT AND RIGHT
-        data = np.asarray([(hfile[k])[:, 2:-2, :] for k in keys], 'float32')
-        # data = np.transpose(data, (0, 3, 1, 2))
-        # Normalize pixels values to [0, 1]
-        data = data / 255
-        # Remove redundant channels because images are grayscale
-        data = data[:, :, :, [0]]
-
-        # Prepare target data
-        tfile = open('data/image_boxes.txt', 'r')
-        content = tfile.read()
-        box_dict = eval(content)
-        labels = convert_map_to_matrix(box_dict)
-    except Exception as e:
-            print('Unable to load the data.', e)
-
-    return data, labels
-
-def validation_split(data_xy, split=0.2):
-    """
-    Splits original dataset and into training and validation datasets
-    """
-    data, labels = data_xy
-
-    # Make sure to always shuffle with a fixed seed so that the split is reproducible
-    random.seed(14)
-    r = list(range(len(labels)))
-    # random.shuffle(r)
-
-    val_size = int(math.ceil(len(r) * split))
-    train_indicies = r[:-val_size]
-    val_indicies = r[-val_size:]
-
-    assert len(val_indicies) == val_size
-    assert len(train_indicies) == len(r) - val_size
-
-    train_data = np.array([data[i] for i in train_indicies])
-    val_data = np.array([data[i] for i in val_indicies])
-    train_labels = np.array([labels[i] for i in train_indicies])
-    val_labels = np.array([labels[i] for i in val_indicies])
-
-    return (train_data, train_labels), (val_data, val_labels)
+    for i, (data_batch, label_batch) in enumerate(generator):
+        print('BATCH {}'.format(i))
+        print('DATA BATCH: ', data_batch.shape)
+        print('LABELS BATCH: ', label_batch.shape)
+        for j in range(BATCH_SIZE):
+            print('IMG {}'.format(j))
+            img = data_batch[j, :, :, 5]
+            img = img[:, :, np.newaxis]
+            img = np.tile(img, (1, 1, 3))
+            boxes = convert_matrix_to_map(label_batch, conf_thresh=CONFIDENCE_THRESHOLD)
+            box_img = draw_boxes(img, boxes[j])
+            box_img = np.squeeze(box_img)
+            plt.imshow(box_img)
+            plt.show()
 
 class TestUtilFunctions(unittest.TestCase):
 
@@ -283,6 +280,72 @@ class TestUtilFunctions(unittest.TestCase):
 
         self.assertCountEqual(result, expected)
 
+    def test_shift_img_batch(self):
+        # (batch, frames, height, width)
+        # (1, 4, 5, 2)
+        batch = [
+            [
+                [
+                    [1, 1],
+                    [2, 2],
+                    [3, 3],
+                    [4, 4]
+                ],
+                [
+                    [5, 5],
+                    [6, 6],
+                    [7, 7],
+                    [8, 8]
+                ],
+                [
+                    [9, 9],
+                    [10, 10],
+                    [11, 11],
+                    [12, 12]
+                ],
+                [
+                    [13, 13],
+                    [14, 14],
+                    [15, 15],
+                    [16, 16]
+                ]
+            ]
+        ]
+        batch = np.array(batch)
+
+        expected = [
+            [
+                [
+                    [1, 1],
+                    [1, 1],
+                    [1, 1],
+                    [1, 1]
+                ],
+                [
+                    [1, 1],
+                    [1, 1],
+                    [1, 1],
+                    [1, 1]
+                ],
+                [
+                    [1, 1],
+                    [1, 1],
+                    [2, 2],
+                    [3, 3]
+                ],
+                [
+                    [1, 1],
+                    [5, 5],
+                    [6, 6],
+                    [7, 7]
+                ]
+            ]
+        ]
+
+        result = shift_img_batch(batch, 1, 2)
+
+        self.assertCountEqual(result.tolist(), expected)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -292,25 +355,12 @@ if __name__ == '__main__':
 
     assert os.path.isdir(args.data_dir), 'Could not find the dataset at {}'.format(args.data_dir)
 
-    # Test the shifting of images/labels
-    # dx = random.randint(-PIXEL_SHIFT_X, PIXEL_SHIFT_X)
-    # dy = random.randint(0, PIXEL_SHIFT_Y)
-    # print('dx: {}, dy: {}'.format(dx, dy))
-    # index = 1
-    # data = load_3d_data('data/J_data', [index], [(dx, dy)])
-    # labels = load_labels('data/labels/image_boxes_J.txt', [index], [(dx, dy)])
-    # img = data[index, :, :, 5]
-    # img = img[:, :, np.newaxis]
-    # img = np.tile(img, (1, 1, 3))
-    # boxes = convert_matrix_to_map(labels, conf_thresh=CONFIDENCE_THRESHOLD)
-    # box_img = draw_boxes(img, boxes[index])
-    # box_img = np.squeeze(box_img)
-    # plt.imshow(box_img)
-    # plt.show()
-
-    # data, labels = load_train_set(['data/H_data', 'data/I_data'], ['data/labels/image_boxes_H.txt', 'data/labels/image_boxes_I.txt'])
-    # print('data: ', data.shape, data)
-    # print('labels: ', labels.shape, labels)
-
-    # Run unit tests
+    ### Run unit tests ###
     unittest.main()
+
+    # Test DataGenerator class
+    data_dirs = ['data/G_data']
+    label_files = ['data/labels/image_boxes_G.txt']
+    generator = DataGenerator(data_dirs, label_files)
+    verify_data_generator(generator)
+

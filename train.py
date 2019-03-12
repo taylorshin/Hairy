@@ -6,18 +6,26 @@ from model.model_fn import *
 from constants import *
 
 def train(model):
-    data_paths = ['data/G_data', 'data/H_data', 'data/I_data']
-    label_paths = ['data/labels/image_boxes_G.txt', 'data/labels/image_boxes_H.txt', 'data/labels/image_boxes_I.txt']
-    train_data, train_targets = load_train_set(data_paths, label_paths)
+    data_dirs = ['data/G_data', 'data/H_data', 'data/I_data']
+    label_files = ['data/labels/image_boxes_G.txt', 'data/labels/image_boxes_H.txt', 'data/labels/image_boxes_I.txt']
+    train_generator = DataGenerator(data_dirs, label_files, enable_data_aug=True)
+
+    # Check if data looks correct
+    # verify_data_generator(train_generator)
 
     callbacks = [
         tf.keras.callbacks.ModelCheckpoint(MODEL_DIR, monitor='loss', save_best_only=True, save_weights_only=True),
-        tf.keras.callbacks.EarlyStopping(monitor='loss', patience=10, verbose=1),
-        tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.6, patience=5, min_lr=1e-7, verbose=1),
+        tf.keras.callbacks.EarlyStopping(monitor='loss', patience=20, verbose=1),
+        # tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.6, patience=5, min_lr=1e-7, verbose=1),
         tf.keras.callbacks.TensorBoard(log_dir=LOG_DIR, histogram_freq=0)
     ]
 
-    return model.fit(train_data, train_targets, batch_size=BATCH_SIZE, epochs=1000, callbacks=callbacks)#, validation_data=val_set)
+    # TODO: Try the use_multiprocessing parameter
+    return model.fit_generator(
+                                generator=train_generator,
+                                epochs=1000,
+                                callbacks=callbacks
+                            )
 
 def main():
     parser = argparse.ArgumentParser(description='Trains the model')
