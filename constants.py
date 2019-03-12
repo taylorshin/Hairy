@@ -24,7 +24,7 @@ LAMBDA_NOOBJ = 0.5
 # Data augmentation
 PIXEL_SHIFT_X = 10
 PIXEL_SHIFT_Y = 20
-DATA_AUG_PROB = 0.2
+DATA_AUG_PROB = 0.8
 
 # Miscellaneous
 IMG_WIDTH = 1000

@@ -15,7 +15,7 @@ def train(model):
 
     callbacks = [
         tf.keras.callbacks.ModelCheckpoint(MODEL_DIR, monitor='loss', save_best_only=True, save_weights_only=True),
-        tf.keras.callbacks.EarlyStopping(monitor='loss', patience=20, verbose=1),
+        tf.keras.callbacks.EarlyStopping(monitor='loss', patience=10, verbose=1),
         # tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.6, patience=5, min_lr=1e-7, verbose=1),
         tf.keras.callbacks.TensorBoard(log_dir=LOG_DIR, histogram_freq=0)
     ]

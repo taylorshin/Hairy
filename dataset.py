@@ -180,13 +180,8 @@ def shift_img(img, dx, dy):
 
 def shift_labels(labels, dx, dy):
     """
-    Shift a set of labels by dx pixels horizontally and dy pixels vertically
+    Shift a set of labels (varied length) by dx pixels horizontally and dy pixels vertically
     """
-    # Code commented out doesn't work for some reason...
-    # shifted_labels = np.array(labels)
-    # shifted_labels[:, 0] += dx
-    # shifted_labels[:, 1] += dy
-    # return shifted_labels.tolist()
     shifted_labels = []
     for label in labels:
         x, y, w, h, c = label
@@ -220,8 +215,27 @@ def load_3d_data(data_dir):
         volume = np.transpose(volume, (1, 2, 0))
         data.append(volume)
 
+    dataset_name = data_dir.split('/')[-1]
+    print('{} - mean: {}, std: {}, min: {}, max: {}'.format(dataset_name, np.mean(data), np.std(data), np.min(data), np.max(data)))
+
     # Normalize pixels values to [0, 1]
-    return np.array(data) / 255.0
+    return (np.array(data) - np.min(data)) / np.max(data)
+
+def load_labels(label_dir):
+    """
+    Load the labels for 3D data
+    """
+    tfile = open(label_dir, 'r')
+    content = tfile.read()
+    box_dict = eval(content)
+    # Sort dictionary by key because 3D data labels are out of order
+    box_dict = dict(sorted(box_dict.items()))
+    # TODO: Remove this exclusion of the first image/label which doesn't have context frames before
+    del box_dict['0000']
+
+    # Convert label dictionary to matrix to feed into network
+    labels = convert_map_to_matrix(box_dict, False)
+    return labels
 
 def verify_data_generator(generator):
     """

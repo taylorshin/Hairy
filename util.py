@@ -91,6 +91,7 @@ def bb_iou(box1, box2):
 
     return iou
 
+### TODO: Remove this depricated function
 def convert_map_to_matrix(box_dict, is_2d_data=True):
     """
     Takes in bounding boxes (dict) extracted from processed data and converts them into a label matrix.
