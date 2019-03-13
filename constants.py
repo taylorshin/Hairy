@@ -5,7 +5,7 @@ OUT_DIR = 'out'
 DATA_DIR = 'data'
 MODEL_DIR = os.path.join(OUT_DIR, 'model.h5')
 LOG_DIR = os.path.join(OUT_DIR, 'logs')
-PREDICT_DIR = os.path.join(OUT_DIR, 'predictions/experiment_data_aug/mse_aug_test_J/')
+PREDICT_DIR = os.path.join(OUT_DIR, 'predictions/experiment-data_aug/mse_aug_test_J/')
 PLOT_FILE = os.path.join(OUT_DIR, 'loss.png')
 
 # Hyperparameters
@@ -22,8 +22,8 @@ LAMBDA_COORD = 5
 LAMBDA_NOOBJ = 0.5
 
 # Data augmentation
-PIXEL_SHIFT_X = 10
-PIXEL_SHIFT_Y = 20
+PIXEL_SHIFT_X = 50
+PIXEL_SHIFT_Y = 100
 DATA_AUG_PROB = 0.8
 
 # Miscellaneous
