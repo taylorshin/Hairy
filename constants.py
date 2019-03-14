@@ -9,11 +9,11 @@ PREDICT_DIR = os.path.join(OUT_DIR, 'predictions/experiment-data_aug/mse_aug_tes
 PLOT_FILE = os.path.join(OUT_DIR, 'loss.png')
 
 # Hyperparameters
-BATCH_SIZE = 8
+BATCH_SIZE = 16
 LEARNING_RATE = 1e-4
 
 # Constants for YOLO algorithm
-S1 = 6
+S1 = 7
 S2 = 11
 B = 1
 C = 0
@@ -22,13 +22,14 @@ LAMBDA_COORD = 5
 LAMBDA_NOOBJ = 0.5
 
 # Data augmentation
-PIXEL_SHIFT_X = 50
-PIXEL_SHIFT_Y = 100
+PIXEL_SHIFT_X = 10
+PIXEL_SHIFT_Y = 20
 DATA_AUG_PROB = 0.8
+DOWNSCALE_FACTOR = 2
 
 # Miscellaneous
-IMG_WIDTH = 1000
-IMG_HEIGHT = 700
+IMG_WIDTH = 1000 // DOWNSCALE_FACTOR
+IMG_HEIGHT = 700 // DOWNSCALE_FACTOR
 IMG_CHANNELS = 11
 GRID_WIDTH = IMG_WIDTH // S2
 GRID_HEIGHT = IMG_HEIGHT // S1

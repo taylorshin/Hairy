@@ -30,7 +30,7 @@ def draw_boxes(image, boxes):
             box_color = (0, 255, 0)
         else:
             box_color = (0, 0, 255)
-        cv2.rectangle(image, (x_min, y_min), (x_max, y_max), box_color, 3)
+        cv2.rectangle(image, (x_min, y_min), (x_max, y_max), box_color, 2)
     return image
 
 def calculate_iou(true_boxes, pred_boxes):
@@ -91,7 +91,6 @@ def bb_iou(box1, box2):
 
     return iou
 
-### TODO: Remove this depricated function
 def convert_map_to_matrix(box_dict, is_2d_data=True):
     """
     Takes in bounding boxes (dict) extracted from processed data and converts them into a label matrix.
@@ -104,6 +103,12 @@ def convert_map_to_matrix(box_dict, is_2d_data=True):
                 x, y, w, h = box
             else:
                 x, y, w, h, c = box
+
+            # Downscale image
+            x //= DOWNSCALE_FACTOR
+            y //= DOWNSCALE_FACTOR
+            w //= DOWNSCALE_FACTOR
+            h //= DOWNSCALE_FACTOR
 
             row = y // GRID_HEIGHT
             col = x // GRID_WIDTH

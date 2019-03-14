@@ -124,7 +124,7 @@ def get_label_list(label_files):
     """
     Return a list of every label in each label file
     """
-    labels = []
+    labels_list = []
     for label_file in label_files:
         tfile = open(label_file, 'r')
         content = tfile.read()
@@ -135,8 +135,13 @@ def get_label_list(label_files):
         del box_dict['0000']
         # Add each list of boxes to the overall labels list
         for key in box_dict.keys():
-            labels.append(np.array(box_dict[key]))
-    return np.array(labels)
+            labels = np.array(box_dict[key])
+            # Downscale image
+            if len(labels) > 0:
+                labels[:, :4] = labels[:, :4] / DOWNSCALE_FACTOR
+            labels_list.append(labels)
+    
+    return np.array(labels_list)
 
 def shift_img_batch(batch, dx, dy):
     """
@@ -189,11 +194,13 @@ def shift_labels(labels, dx, dy):
         shifted_labels.append(label)
     return shifted_labels
 
-def load_image(filename):
+def load_image(filename, size=(IMG_WIDTH, IMG_HEIGHT)):
     """
     Load an image from a file
     """
     img = Image.open(filename)
+    # Resize image if specified
+    img = img.resize(size, Image.ANTIALIAS)
     img.load()
     img_data = np.array(img, dtype='float32')
     return img_data
