@@ -1,7 +1,5 @@
-import argparse
 import random
 import os
-import time
 import math
 import h5py
 import unittest
@@ -18,7 +16,7 @@ from util import *
 
 class DataGenerator(keras.utils.Sequence):
 
-    def __init__(self, data_dirs, label_files, batch_size=BATCH_SIZE, shuffle=True, enable_data_aug=True):
+    def __init__(self, data_dirs, label_files, batch_size, shuffle=True, enable_data_aug=True):
         print('Loading data...')
         # Load images
         data = []
@@ -53,20 +51,29 @@ class DataGenerator(keras.utils.Sequence):
 
         # Randomly augment data/labels
         if self.enable_data_aug and np.random.random() < DATA_AUG_PROB:
-            dx = random.randint(-PIXEL_SHIFT_X, PIXEL_SHIFT_X)
-            dy = random.randint(0, PIXEL_SHIFT_Y)
+            # dx = random.randint(-PIXEL_SHIFT_X, PIXEL_SHIFT_X)
+            # dy = random.randint(0, PIXEL_SHIFT_Y)
 
-            # Augment batch of images
-            imgs = shift_img_batch(imgs, dx, dy)
+            # # Augment batch of images
+            # imgs = shift_img_batch(imgs, dx, dy)
 
-            # Augment batch of labels
-            aug_labels = []
-            for labels in list_label_set:
-                aug_labels.append(shift_labels(labels, dx, dy))
-            list_label_set = aug_labels
+            # # Augment batch of labels
+            # aug_labels = []
+            # for labels in list_label_set:
+            #     aug_labels.append(shift_labels(labels, dx, dy))
+            # list_label_set = aug_labels
+
+            # Augment individual images in a batch
+            for i in range(len(imgs)):
+                dx = random.randint(-PIXEL_SHIFT_X, PIXEL_SHIFT_X)
+                dy = random.randint(0, PIXEL_SHIFT_Y)
+                # Augment volume of images
+                imgs[i] = shift_volume(imgs[i], dx, dy)
+                # Augment labels
+                list_label_set[i] = shift_labels(list_label_set[i], dx, dy)
 
         x = np.array(imgs)
-        y = convert_labels_to_matrix(list_label_set)
+        y = convert_lists_to_matrix(list_label_set)
         return x, y
 
     def on_epoch_end(self):
@@ -76,71 +83,20 @@ class DataGenerator(keras.utils.Sequence):
             np.random.shuffle(self.indices)
 
 
-def convert_labels_to_matrix(list_label_set):
-    """
-    Converts a list of sets of labels to matrix form
-    [x, y, w, h, c] -> matrix form
-    """
-    label_matrix = np.zeros((len(list_label_set), S1, S2, T))
-
-    for i, label_set in enumerate(list_label_set):
-        img = label_matrix[i]
-        # Box and label are synonymous at this point
-        for j, box in enumerate(label_set):
-            x, y, w, h, c = box
-            row = y // GRID_HEIGHT
-            col = x // GRID_WIDTH
-            
-            # Check out of bounds
-            if row < 0 or row >= S1 or col < 0 or col >= S2:
-                continue
-
-            # Grid cell top left position
-            cell_x = col * GRID_WIDTH
-            cell_y = row * GRID_HEIGHT
-            # B * (5 + C) vector
-            box_data = img[row, col]
-            # Relative x from the top left corner of the grid cell
-            box_data[0] = x - cell_x
-            # Relative y
-            box_data[1] = y - cell_y
-            # Width
-            box_data[2] = w
-            # Height
-            box_data[3] = h
-            # Confidence level
-            box_data[4] = 1
-
-    # Relative x and y are normalized by grid cell size
-    label_matrix[:, :, :, 0::5] = label_matrix[:, :, :, 0::5] / GRID_WIDTH
-    label_matrix[:, :, :, 1::5] = label_matrix[:, :, :, 1::5] / GRID_HEIGHT
-    # Normalize bounding box width/height by image width/height
-    label_matrix[:, :, :, 2::5] = label_matrix[:, :, :, 2::5] / IMG_WIDTH
-    label_matrix[:, :, :, 3::5] = label_matrix[:, :, :, 3::5] / IMG_HEIGHT
-
-    return label_matrix
-
 def get_label_list(label_files):
     """
     Return a list of every label in each label file
     """
     labels_list = []
     for label_file in label_files:
-        tfile = open(label_file, 'r')
-        content = tfile.read()
-        box_dict = eval(content)
-        # Sort dictionary by key because 3D data labels are out of order
-        box_dict = dict(sorted(box_dict.items()))
-        # TODO: Remove this exclusion of the first image/label which doesn't have context frames before
-        del box_dict['0000']
+        label_dict = load_label_dict(label_file)
         # Add each list of boxes to the overall labels list
-        for key in box_dict.keys():
-            labels = np.array(box_dict[key])
+        for key in label_dict.keys():
+            labels = np.array(label_dict[key])
             # Downscale image
             if len(labels) > 0:
                 labels[:, :4] = labels[:, :4] / DOWNSCALE_FACTOR
             labels_list.append(labels)
-    
     return np.array(labels_list)
 
 def shift_img_batch(batch, dx, dy):
@@ -166,7 +122,7 @@ def shift_img_batch(batch, dx, dy):
 
 def shift_img(img, dx, dy):
     """
-    Shift image by dx pixels horizontally and dy pixels vertically
+    Shift a single image by dx pixels horizontally and dy pixels vertically
     and fill the void parts of the image with 0
     """
     img = np.roll(img, dy, axis=0)
@@ -182,6 +138,26 @@ def shift_img(img, dx, dy):
         img[:, dx:] = 0
 
     return img
+
+def shift_volume(volume, dx, dy):
+    """
+    Shift volume of images
+    """
+    min_pixel = np.min(volume)
+    volume = np.transpose(volume, (2, 0, 1))
+    volume = np.roll(volume, [dy, dx], axis=(1, 2))
+
+    if dy > 0:
+        volume[:, :dy, :] = min_pixel
+    elif dy < 0:
+        volume[:, dy:, :] = min_pixel
+    if dx > 0:
+        volume[:, :, :dx] = min_pixel
+    elif dx < 0:
+        volume[:, :, dx:] = min_pixel
+
+    volume = np.transpose(volume, (1, 2, 0))
+    return volume
 
 def shift_labels(labels, dx, dy):
     """
@@ -228,25 +204,31 @@ def load_3d_data(data_dir):
     # Normalize pixels values to [0, 1]
     return (np.array(data) - np.min(data)) / np.max(data)
 
-def load_labels(label_dir):
+def load_label_dict(label_file):
+    """
+    Load dictionary of labels from a label file
+    """
+    tfile = open(label_file, 'r')
+    content = tfile.read()
+    label_dict = eval(content)
+    # Sort dictionary by key because 3D data labels are out of order
+    label_dict = dict(sorted(label_dict.items()))
+    # TODO: Remove this exclusion of the first image/label which doesn't have context frames before
+    del label_dict['0000']
+    return label_dict
+
+def load_label_matrix(label_file):
     """
     Load the labels for 3D data
     """
-    tfile = open(label_dir, 'r')
-    content = tfile.read()
-    box_dict = eval(content)
-    # Sort dictionary by key because 3D data labels are out of order
-    box_dict = dict(sorted(box_dict.items()))
-    # TODO: Remove this exclusion of the first image/label which doesn't have context frames before
-    del box_dict['0000']
-
+    label_dict = load_label_dict(label_file)
     # Convert label dictionary to matrix to feed into network
-    labels = convert_map_to_matrix(box_dict, False)
+    labels = convert_dict_to_matrix(label_dict)
     return labels
 
 def verify_data_generator(generator):
     """
-    Verifies that the data is correctly generated an augmented
+    Verifies that the data is correctly generated and augmented
     """
     for i, (data_batch, label_batch) in enumerate(generator):
         print('BATCH {}'.format(i))
@@ -257,7 +239,7 @@ def verify_data_generator(generator):
             img = data_batch[j, :, :, 5]
             img = img[:, :, np.newaxis]
             img = np.tile(img, (1, 1, 3))
-            boxes = convert_matrix_to_map(label_batch, conf_thresh=CONFIDENCE_THRESHOLD)
+            boxes = convert_matrix_to_dict(label_batch, conf_thresh=CONFIDENCE_THRESHOLD)
             box_img = draw_boxes(img, boxes[j])
             box_img = np.squeeze(box_img)
             plt.imshow(box_img)
@@ -369,13 +351,6 @@ class TestUtilFunctions(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--data_dir', default=DATA_DIR, help='Directory with the hair follicle dataset')
-    parser.add_argument('--out_dir', default=OUT_DIR, help='Where to write the new data')
-    args = parser.parse_args()
-
-    assert os.path.isdir(args.data_dir), 'Could not find the dataset at {}'.format(args.data_dir)
-
     ### Run unit tests ###
     unittest.main()
 

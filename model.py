@@ -11,6 +11,9 @@ def mse_loss(y_true, y_pred):
     return mse
 
 def calculate_iou_scores(true_boxes, pred_boxes):
+    """
+    Calculate IOU between list of predicted labels and list of their counterpart true labels
+    """
     x_min = tf.minimum(true_boxes[:, :, :, 0] - (true_boxes[:, :, :, 2] / 2.0), pred_boxes[:, :, :, 0] - (pred_boxes[:, :, :, 2] / 2.0))
     x_max = tf.maximum(true_boxes[:, :, :, 0] + (true_boxes[:, :, :, 2] / 2.0), pred_boxes[:, :, :, 0] + (pred_boxes[:, :, :, 2] / 2.0))
     y_min = tf.minimum(true_boxes[:, :, :, 1] - (true_boxes[:, :, :, 3] / 2.0), pred_boxes[:, :, :, 1] - (pred_boxes[:, :, :, 3] / 2.0))
@@ -87,7 +90,7 @@ def yolo_loss(y_true, y_pred):
     loss = xy_term + wh_term + c_term
     return loss
 
-def build_model():
+def build_model(lr=LEARNING_RATE):
     """
     YOLO v2 Architecture
     """
@@ -95,61 +98,47 @@ def build_model():
     inputs = keras.Input(shape=(IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS))
 
     # Layer 1
-    x = layers.Conv2D(filters=32, kernel_size=3)(inputs)
+    x = layers.Conv2D(filters=16, kernel_size=3)(inputs)
     x = layers.LeakyReLU(alpha=0.1)(x)
     x = layers.MaxPooling2D(pool_size=(2, 2))(x)
 
     # Layer 2
-    x = layers.Conv2D(filters=64, kernel_size=3)(x)
+    x = layers.Conv2D(filters=32, kernel_size=3)(x)
     x = layers.LeakyReLU(alpha=0.1)(x)
     x = layers.MaxPooling2D(pool_size=(2, 2))(x)
 
     # Layer 3
-    x = layers.Conv2D(filters=128, kernel_size=3)(x)
+    x = layers.Conv2D(filters=64, kernel_size=3)(x)
     x = layers.LeakyReLU(alpha=0.1)(x)
+    x = layers.MaxPooling2D(pool_size=(2, 2))(x)
 
     # Layer 4
-    x = layers.Conv2D(filters=64, kernel_size=1)(x)
-    x = layers.LeakyReLU(alpha=0.1)(x)
-
-    # Layer 5
     x = layers.Conv2D(filters=128, kernel_size=3)(x)
     x = layers.LeakyReLU(alpha=0.1)(x)
     x = layers.MaxPooling2D(pool_size=(2, 2))(x)
 
-    # Layer 6
-    x = layers.Conv2D(filters=256, kernel_size=3)(x)
-    x = layers.LeakyReLU(alpha=0.1)(x)
-
-    # Layer 7
-    x = layers.Conv2D(filters=128, kernel_size=1)(x)
-    x = layers.LeakyReLU(alpha=0.1)(x)
-
-    # Layer 8
+    # Layer 5
     x = layers.Conv2D(filters=256, kernel_size=3)(x)
     x = layers.LeakyReLU(alpha=0.1)(x)
     x = layers.MaxPooling2D(pool_size=(2, 2))(x)
 
-    # Layer 9
-    x = layers.Conv2D(filters=512, kernel_size=3)(x)
-    x = layers.LeakyReLU(alpha=0.1)(x)
-
-    # Layer 10
-    x = layers.Conv2D(filters=256, kernel_size=1)(x)
-    x = layers.LeakyReLU(alpha=0.1)(x)
-
-    # Layer 11
     x = layers.Conv2D(filters=512, kernel_size=3)(x)
     x = layers.LeakyReLU(alpha=0.1)(x)
     x = layers.MaxPooling2D(pool_size=(2, 2))(x)
 
-    # Layer 14
+    x = layers.Conv2D(filters=512, kernel_size=3)(x)
+    x = layers.LeakyReLU(alpha=0.1)(x)
+
+    # Layer 15
     outputs = layers.Conv2D(filters=T, kernel_size=1)(x)
 
     # Assemble the model
     model = keras.Model(inputs=inputs, outputs=outputs)
+    ### This optimizer needs to be used for debug mode ###
     # optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
-    optimizer = keras.optimizers.Adam(lr=LEARNING_RATE)
+    # learning_rate = tf.train.exponential_decay(1e-4, 0, 100000, 0.96)
+    ### This optimizer works with ReduceLROnPlateau ###
+    optimizer = keras.optimizers.Adam(lr=lr)
     # model.compile(loss='mse', optimizer=optimizer, metrics=['mse'])
     model.compile(loss=mse_loss, optimizer=optimizer)
 
