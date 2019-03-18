@@ -124,10 +124,10 @@ def build_model(lr=LEARNING_RATE):
 
     x = layers.Conv2D(filters=512, kernel_size=3)(x)
     x = layers.LeakyReLU(alpha=0.1)(x)
-    x = layers.MaxPooling2D(pool_size=(2, 2))(x)
+    # x = layers.MaxPooling2D(pool_size=(2, 2))(x)
 
-    x = layers.Conv2D(filters=512, kernel_size=3)(x)
-    x = layers.LeakyReLU(alpha=0.1)(x)
+    # x = layers.Conv2D(filters=512, kernel_size=3)(x)
+    # x = layers.LeakyReLU(alpha=0.1)(x)
 
     # Layer 15
     outputs = layers.Conv2D(filters=T, kernel_size=1)(x)

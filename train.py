@@ -17,14 +17,14 @@ def train(model, batch_size, model_dir=MODEL_DIR):
     callbacks = [
         tf.keras.callbacks.ModelCheckpoint(model_dir, monitor='loss', save_best_only=True, save_weights_only=True),
         # tf.keras.callbacks.EarlyStopping(monitor='loss', patience=20, verbose=1),
-        tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.8, patience=5, min_lr=1e-6, verbose=1),
+        tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.8, patience=8, min_lr=1e-6, verbose=1),
         tf.keras.callbacks.TensorBoard(log_dir=LOG_DIR, histogram_freq=0)
     ]
 
     # TODO: Try the use_multiprocessing parameter
     return model.fit_generator(
                                 generator=train_generator,
-                                epochs=200,
+                                epochs=250,
                                 callbacks=callbacks
                             )
 

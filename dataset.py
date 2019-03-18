@@ -93,9 +93,11 @@ def get_label_list(label_files):
         # Add each list of boxes to the overall labels list
         for key in label_dict.keys():
             labels = np.array(label_dict[key])
+
             # Downscale image
             if len(labels) > 0:
-                labels[:, :4] = labels[:, :4] / DOWNSCALE_FACTOR
+                labels[:, :4] = labels[:, :4] // DOWNSCALE_FACTOR
+
             labels_list.append(labels)
     return np.array(labels_list)
 
@@ -192,7 +194,7 @@ def load_3d_data(data_dir):
     imgs = np.array(imgs)
 
     data = []
-    # TODO: Remove this exclusion of the first image/label which doesn't have context frames before
+    # Exclude the first image/label which doesn't have context frames before
     for i in range(LABEL_FRAME_INTERVAL, imgs.shape[0], LABEL_FRAME_INTERVAL):
         volume = imgs[i-CONTEXT_FRAMES:i+CONTEXT_FRAMES+1, :, :]
         volume = np.transpose(volume, (1, 2, 0))
@@ -213,7 +215,7 @@ def load_label_dict(label_file):
     label_dict = eval(content)
     # Sort dictionary by key because 3D data labels are out of order
     label_dict = dict(sorted(label_dict.items()))
-    # TODO: Remove this exclusion of the first image/label which doesn't have context frames before
+    # Exclude the first image/label which doesn't have context frames before
     del label_dict['0000']
     return label_dict
 

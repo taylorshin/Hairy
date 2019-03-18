@@ -121,12 +121,6 @@ def convert_dict_to_matrix(label_dict):
         for j, box in enumerate(boxes):
             x, y, w, h, c = box
 
-            # Downscale image
-            x //= DOWNSCALE_FACTOR
-            y //= DOWNSCALE_FACTOR
-            w //= DOWNSCALE_FACTOR
-            h //= DOWNSCALE_FACTOR
-
             row = y // GRID_HEIGHT
             col = x // GRID_WIDTH
             

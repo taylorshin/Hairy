@@ -28,7 +28,7 @@ def predict_data_set(model, save_path, data, label_dict, conf_thresh):
 
         # Plot true boxes
         # Replace class values which can be 0, 1, or 2 for true labels with 1 indicating 100% confidence
-        og_labels = [boxes[:-1] + [1] for boxes in label_dict[i]]
+        og_labels = [(np.array(boxes[:-1]) / DOWNSCALE_FACTOR).tolist() + [1] for boxes in label_dict[i]]
         true_img = draw_boxes(og_img * 255, og_labels)
         true_img = np.squeeze(true_img)
 
@@ -67,7 +67,7 @@ def predict_data_point(model, data, label_dict, index, conf_thresh):
 
     # Plot true bounding boxes
     # Replace class values which can be 0, 1, or 2 for true labels with 1 indicating 100% confidence
-    og_labels = [boxes[:-1] + [1] for boxes in label_dict[index]]
+    og_labels = [(np.array(boxes[:-1]) / DOWNSCALE_FACTOR).tolist() + [1] for boxes in label_dict[index]]
     true_img = draw_boxes(og_img, og_labels)
     true_img = np.squeeze(true_img)
     # axes[1].imshow(true_img)
