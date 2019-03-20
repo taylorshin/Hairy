@@ -14,7 +14,7 @@ LEARNING_RATE = 1e-4
 
 # Constants for YOLO algorithm
 S1 = 6
-S2 = 11
+S2 = 10
 B = 1
 C = 0
 T = B * (5 + C)

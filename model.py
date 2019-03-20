@@ -97,41 +97,53 @@ def build_model(lr=LEARNING_RATE):
     inputs = keras.Input(shape=(IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS))
 
     # Layer 1
-    x = layers.Conv2D(filters=16, kernel_size=3)(inputs)
+    x = layers.Conv2D(filters=16, kernel_size=3, strides=1)(inputs)
     # x = layers.BatchNormalization()(x)
     x = layers.LeakyReLU(alpha=0.1)(x)
-    x = layers.MaxPooling2D(pool_size=(2, 2))(x)
+    x = layers.MaxPooling2D(pool_size=2, strides=2)(x)
 
     # Layer 2
-    x = layers.Conv2D(filters=32, kernel_size=3)(x)
+    x = layers.Conv2D(filters=32, kernel_size=3, strides=1)(x)
     # x = layers.BatchNormalization()(x)
     x = layers.LeakyReLU(alpha=0.1)(x)
-    x = layers.MaxPooling2D(pool_size=(2, 2))(x)
+    x = layers.MaxPooling2D(pool_size=2, strides=2)(x)
 
     # Layer 3
-    x = layers.Conv2D(filters=64, kernel_size=3)(x)
+    x = layers.Conv2D(filters=64, kernel_size=3, strides=1)(x)
+    x = layers.LeakyReLU(alpha=0.1)(x)
+    x = layers.Conv2D(filters=32, kernel_size=1, strides=1)(x)
+    x = layers.LeakyReLU(alpha=0.1)(x)
+    x = layers.Conv2D(filters=64, kernel_size=3, strides=1)(x)
     # x = layers.BatchNormalization()(x)
     x = layers.LeakyReLU(alpha=0.1)(x)
-    x = layers.MaxPooling2D(pool_size=(2, 2))(x)
+    x = layers.MaxPooling2D(pool_size=2, strides=2)(x)
 
     # Layer 4
-    x = layers.Conv2D(filters=128, kernel_size=3)(x)
+    x = layers.Conv2D(filters=128, kernel_size=3, strides=1)(x)
+    x = layers.LeakyReLU(alpha=0.1)(x)
+    x = layers.Conv2D(filters=64, kernel_size=1, strides=1)(x)
+    x = layers.LeakyReLU(alpha=0.1)(x)
+    x = layers.Conv2D(filters=128, kernel_size=3, strides=1)(x)
     # x = layers.BatchNormalization()(x)
     x = layers.LeakyReLU(alpha=0.1)(x)
-    x = layers.MaxPooling2D(pool_size=(2, 2))(x)
+    x = layers.MaxPooling2D(pool_size=2, strides=2)(x)
 
     # Layer 5
-    x = layers.Conv2D(filters=128, kernel_size=3)(x)
+    x = layers.Conv2D(filters=256, kernel_size=3, strides=1)(x)
+    x = layers.LeakyReLU(alpha=0.1)(x)
+    x = layers.Conv2D(filters=128, kernel_size=1, strides=1)(x)
+    x = layers.LeakyReLU(alpha=0.1)(x)
+    x = layers.Conv2D(filters=256, kernel_size=3, strides=1)(x)
     # x = layers.BatchNormalization()(x)
     x = layers.LeakyReLU(alpha=0.1)(x)
-    x = layers.MaxPooling2D(pool_size=(2, 2))(x)
+    x = layers.MaxPooling2D(pool_size=2, strides=2)(x)
 
-    x = layers.Conv2D(filters=256, kernel_size=3)(x)
+    x = layers.Conv2D(filters=512, kernel_size=3, strides=1)(x)
     # x = layers.BatchNormalization()(x)
     x = layers.LeakyReLU(alpha=0.1)(x)
-    x = layers.MaxPooling2D(pool_size=(2, 2))(x)
+    x = layers.MaxPooling2D(pool_size=2, strides=2)(x)
 
-    x = layers.Conv2D(filters=256, kernel_size=3)(x)
+    x = layers.Conv2D(filters=512, kernel_size=3, strides=1)(x)
     # x = layers.BatchNormalization()(x)
     x = layers.LeakyReLU(alpha=0.1)(x)
 
