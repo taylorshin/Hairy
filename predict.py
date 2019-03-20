@@ -14,7 +14,7 @@ def predict_data_set(model, save_path, data, label_dict, conf_thresh):
     """
     for i in tqdm(range(data.shape[0])):
         # Original (O.G.) image
-        og_img = np.expand_dims(data[i, :, :, 5], axis=2)
+        og_img = np.expand_dims(data[i, :, :, CONTEXT_FRAMES], axis=2)
         og_img = np.tile(og_img, (1, 1, 3))
 
         # Make prediction
@@ -42,7 +42,7 @@ def predict_data_point(model, data, label_dict, index, conf_thresh):
     """
     Predict bounding boxes around hair follicles for a single data point at index
     """
-    og_img = np.expand_dims(data[index, :, :, 5], axis=2)
+    og_img = np.expand_dims(data[index, :, :, CONTEXT_FRAMES], axis=2)
     og_img = np.tile(og_img, (1, 1, 3))
 
     # Add batch dimension

@@ -7,25 +7,29 @@ from model import *
 from constants import *
 
 def train(model, batch_size, model_dir=MODEL_DIR):
-    data_dirs = ['data/G_data', 'data/H_data', 'data/I_data']
-    label_files = ['data/labels/image_boxes_G.txt', 'data/labels/image_boxes_H.txt', 'data/labels/image_boxes_I.txt']
-    train_generator = DataGenerator(data_dirs, label_files, batch_size, enable_data_aug=True)
+    train_data_dirs = ['data/G_data', 'data/H_data']
+    train_label_files = ['data/labels/image_boxes_G.txt', 'data/labels/image_boxes_H.txt']
+    val_data_dirs = ['data/I_data']
+    val_label_files = ['data/labels/image_boxes_I.txt']
+    train_generator = DataGenerator(train_data_dirs, train_label_files, batch_size, enable_data_aug=True)
+    val_generator = DataGenerator(val_data_dirs, val_label_files, batch_size, enable_data_aug=False)
 
     # Check if data looks correct
-    # verify_data_generator(train_generator)
+    # verify_data_generator(val_generator)
 
     callbacks = [
         tf.keras.callbacks.ModelCheckpoint(model_dir, monitor='loss', save_best_only=True, save_weights_only=True),
         # tf.keras.callbacks.EarlyStopping(monitor='loss', patience=20, verbose=1),
-        tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.8, patience=8, min_lr=1e-6, verbose=1),
+        tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.8, patience=10, min_lr=1e-6, verbose=1),
         tf.keras.callbacks.TensorBoard(log_dir=LOG_DIR, histogram_freq=0)
     ]
 
     # TODO: Try the use_multiprocessing parameter
     return model.fit_generator(
                                 generator=train_generator,
-                                epochs=250,
-                                callbacks=callbacks
+                                epochs=100,
+                                callbacks=callbacks,
+                                validation_data=val_generator
                             )
 
 def main():
@@ -67,12 +71,12 @@ def main():
     
     ### Plot training and validation loss over epochs ###
     train_loss = history.history['loss']
-    # val_loss = history.history['val_loss']
+    val_loss = history.history['val_loss']
     epochs = range(len(train_loss))
     plt.plot(epochs, train_loss, label='Training Loss')
-    # plt.plot(epochs, val_loss, label='Validation Loss')
+    plt.plot(epochs, val_loss, label='Validation Loss')
     plt.title('Training Loss')
-    # plt.legend()
+    plt.legend()
     plt.savefig(PLOT_FILE)
 
 

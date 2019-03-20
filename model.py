@@ -7,7 +7,6 @@ def mse_loss(y_true, y_pred):
     # print('y_true: ', y_true, tf.shape(y_true))
     # print('y_pred: ', y_pred, tf.shape(y_pred))
     mse = tf.reduce_mean(tf.square(y_pred - y_true))
-    # print('MSE: ', mse)
     return mse
 
 def calculate_iou_scores(true_boxes, pred_boxes):
@@ -99,35 +98,42 @@ def build_model(lr=LEARNING_RATE):
 
     # Layer 1
     x = layers.Conv2D(filters=16, kernel_size=3)(inputs)
+    # x = layers.BatchNormalization()(x)
     x = layers.LeakyReLU(alpha=0.1)(x)
     x = layers.MaxPooling2D(pool_size=(2, 2))(x)
 
     # Layer 2
     x = layers.Conv2D(filters=32, kernel_size=3)(x)
+    # x = layers.BatchNormalization()(x)
     x = layers.LeakyReLU(alpha=0.1)(x)
     x = layers.MaxPooling2D(pool_size=(2, 2))(x)
 
     # Layer 3
     x = layers.Conv2D(filters=64, kernel_size=3)(x)
+    # x = layers.BatchNormalization()(x)
     x = layers.LeakyReLU(alpha=0.1)(x)
     x = layers.MaxPooling2D(pool_size=(2, 2))(x)
 
     # Layer 4
     x = layers.Conv2D(filters=128, kernel_size=3)(x)
+    # x = layers.BatchNormalization()(x)
     x = layers.LeakyReLU(alpha=0.1)(x)
     x = layers.MaxPooling2D(pool_size=(2, 2))(x)
 
     # Layer 5
-    x = layers.Conv2D(filters=256, kernel_size=3)(x)
+    x = layers.Conv2D(filters=128, kernel_size=3)(x)
+    # x = layers.BatchNormalization()(x)
     x = layers.LeakyReLU(alpha=0.1)(x)
     x = layers.MaxPooling2D(pool_size=(2, 2))(x)
 
-    x = layers.Conv2D(filters=512, kernel_size=3)(x)
+    x = layers.Conv2D(filters=256, kernel_size=3)(x)
+    # x = layers.BatchNormalization()(x)
     x = layers.LeakyReLU(alpha=0.1)(x)
-    # x = layers.MaxPooling2D(pool_size=(2, 2))(x)
+    x = layers.MaxPooling2D(pool_size=(2, 2))(x)
 
-    # x = layers.Conv2D(filters=512, kernel_size=3)(x)
-    # x = layers.LeakyReLU(alpha=0.1)(x)
+    x = layers.Conv2D(filters=256, kernel_size=3)(x)
+    # x = layers.BatchNormalization()(x)
+    x = layers.LeakyReLU(alpha=0.1)(x)
 
     # Layer 15
     outputs = layers.Conv2D(filters=T, kernel_size=1)(x)
