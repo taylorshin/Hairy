@@ -1,12 +1,13 @@
 import os
 import argparse
 import numpy as np
+import matplotlib.pyplot as plt
 import tensorflow as tf
 from dataset import DataGenerator, verify_data_generator
 from model import build_model
 from constants import PLOT_FILE, MODEL_DIR, BATCH_SIZE, LOG_DIR
 
-def train(model, batch_size, model_dir=MODEL_DIR):
+def train(model, batch_size, num_epochs, model_dir=MODEL_DIR):
     train_data_dirs = ['data/G_data', 'data/H_data']
     train_label_files = ['data/labels/image_boxes_G.txt', 'data/labels/image_boxes_H.txt']
     val_data_dirs = ['data/I_data']
@@ -20,13 +21,13 @@ def train(model, batch_size, model_dir=MODEL_DIR):
     callbacks = [
         tf.keras.callbacks.ModelCheckpoint(model_dir, monitor='loss', save_best_only=True, save_weights_only=True),
         # tf.keras.callbacks.EarlyStopping(monitor='loss', patience=20, verbose=1),
-        tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.8, patience=5, min_lr=1e-6, verbose=1),
+        tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.8, patience=10, min_lr=1e-6, verbose=1),
         tf.keras.callbacks.TensorBoard(log_dir=LOG_DIR, histogram_freq=0)
     ]
 
     return model.fit_generator(
                                 generator=train_generator,
-                                epochs=100,
+                                epochs=num_epochs,
                                 callbacks=callbacks,
                                 validation_data=val_generator
                             )
@@ -35,6 +36,7 @@ def main():
     parser = argparse.ArgumentParser(description='Trains the model')
     parser.add_argument('--debug', default=False, type=bool, help='Debug mode')
     parser.add_argument('--batch-size', default=BATCH_SIZE, type=int, help='Size of training batch')
+    parser.add_argument('--epochs', default=100, type=int, help='Number of epochs to train for')
     args = parser.parse_args()
 
     if args.debug:
@@ -43,7 +45,7 @@ def main():
 
     model = build_model()
     model.summary()
-    history = train(model, args.batch_size)
+    history = train(model, args.batch_size, args.epochs)
     
     ### LEARNING RATE EXPERIMENT ###
     # lrs = np.arange(0.00001, 0.0001, 0.00002)

@@ -36,6 +36,3 @@ GRID_WIDTH = IMG_WIDTH // S2
 GRID_HEIGHT = IMG_HEIGHT // S1
 CONFIDENCE_THRESHOLD = 0.5
 LABEL_FRAME_INTERVAL = 20
-
-# TODO: Figure out way to remove need for this constant
-NUM_ITEMS_PER_DIR = 50
