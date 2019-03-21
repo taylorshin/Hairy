@@ -91,6 +91,61 @@ def yolo_loss(y_true, y_pred):
 
 def build_model(lr=LEARNING_RATE):
     """
+    Tiny YOLO v2 Architecture
+    """
+    # Input layer
+    inputs = keras.Input(shape=(IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS))
+
+    # Layer 1
+    x = layers.Conv2D(filters=16, kernel_size=3, strides=1)(inputs)
+    x = layers.LeakyReLU(alpha=0.1)(x)
+    x = layers.MaxPooling2D(pool_size=2, strides=2)(x)
+
+    # Layer 2
+    x = layers.Conv2D(filters=32, kernel_size=3, strides=1)(x)
+    x = layers.LeakyReLU(alpha=0.1)(x)
+    x = layers.MaxPooling2D(pool_size=2, strides=2)(x)
+
+    # Layer 3
+    x = layers.Conv2D(filters=64, kernel_size=3, strides=1)(x)
+    x = layers.LeakyReLU(alpha=0.1)(x)
+    x = layers.MaxPooling2D(pool_size=2, strides=2)(x)
+
+    # Layer 4
+    x = layers.Conv2D(filters=128, kernel_size=3, strides=1)(x)
+    x = layers.LeakyReLU(alpha=0.1)(x)
+    x = layers.MaxPooling2D(pool_size=2, strides=2)(x)
+
+    # Layer 5
+    x = layers.Conv2D(filters=256, kernel_size=3, strides=1)(x)
+    x = layers.LeakyReLU(alpha=0.1)(x)
+    x = layers.MaxPooling2D(pool_size=2, strides=2)(x)
+
+    # Layer 6
+    x = layers.Conv2D(filters=512, kernel_size=3, strides=1)(x)
+    x = layers.LeakyReLU(alpha=0.1)(x)
+    x = layers.MaxPooling2D(pool_size=2, strides=2)(x)
+
+    # Layer 7
+    x = layers.Conv2D(filters=1024, kernel_size=3, strides=1)(x)
+    x = layers.LeakyReLU(alpha=0.1)(x)
+
+    # Layer 8
+    outputs = layers.Conv2D(filters=T, kernel_size=1)(x)
+
+    # Assemble the model
+    model = keras.Model(inputs=inputs, outputs=outputs)
+    ### This optimizer needs to be used for debug mode ###
+    # optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
+    ### This optimizer works with ReduceLROnPlateau ###
+    optimizer = keras.optimizers.Adam(lr=lr)
+    # model.compile(loss='mse', optimizer=optimizer, metrics=['mse'])
+    model.compile(loss=mse_loss, optimizer=optimizer)
+
+    return model
+
+def build_yolo_v2_model(lr=LEARNING_RATE):
+    """
     YOLO v2 Architecture
     """
     # Input layer

@@ -15,7 +15,7 @@ def train(model, batch_size, model_dir=MODEL_DIR):
     val_generator = DataGenerator(val_data_dirs, val_label_files, batch_size, enable_data_aug=False)
 
     # Check if data looks correct
-    # verify_data_generator(val_generator)
+    # verify_data_generator(train_generator)
 
     callbacks = [
         tf.keras.callbacks.ModelCheckpoint(model_dir, monitor='loss', save_best_only=True, save_weights_only=True),

@@ -238,7 +238,7 @@ def verify_data_generator(generator):
         print('LABELS BATCH: ', label_batch.shape)
         for j in range(BATCH_SIZE):
             print('IMG {}'.format(j))
-            img = data_batch[j, :, :, 5]
+            img = data_batch[j, :, :, CONTEXT_FRAMES]
             img = img[:, :, np.newaxis]
             img = np.tile(img, (1, 1, 3))
             boxes = convert_matrix_to_dict(label_batch, conf_thresh=CONFIDENCE_THRESHOLD)

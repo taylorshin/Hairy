@@ -9,12 +9,12 @@ PREDICT_DIR = os.path.join(OUT_DIR, 'predictions')
 PLOT_FILE = os.path.join(OUT_DIR, 'loss.png')
 
 # Hyperparameters
-BATCH_SIZE = 8
+BATCH_SIZE = 16
 LEARNING_RATE = 1e-4
 
 # Constants for YOLO algorithm
 S1 = 6
-S2 = 10
+S2 = 11
 B = 1
 C = 0
 T = B * (5 + C)
@@ -30,7 +30,7 @@ DATA_AUG_PROB = 0.8
 # Miscellaneous
 IMG_WIDTH = 1000 // DOWNSCALE_FACTOR # 500
 IMG_HEIGHT = 700 // DOWNSCALE_FACTOR # 350
-CONTEXT_FRAMES = 2
+CONTEXT_FRAMES = 1
 IMG_CHANNELS = CONTEXT_FRAMES + 1 + CONTEXT_FRAMES
 GRID_WIDTH = IMG_WIDTH // S2
 GRID_HEIGHT = IMG_HEIGHT // S1
