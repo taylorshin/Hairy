@@ -1,61 +1,108 @@
 import numpy as np
+import matplotlib.pyplot as plt
 import argparse
-import torch
-import torch.nn as nn
+import tensorflow as tf
 from tqdm import tqdm
-from dataset import *
-from model import Hairy
-from constants import *
-from util import *
+from PIL import Image
+from dataset import load_3d_data, load_label_dict
+from constants import CONTEXT_FRAMES, DOWNSCALE_FACTOR, MODEL_DIR, PREDICT_DIR
+from util import draw_boxes, convert_matrix_to_dict, build_or_load
 
-def predict(model, image):
-    model.eval()
-    output = model(image)
-    return output
+def predict_data_set(model, save_path, data, label_dict, conf_thresh):
+    """
+    Loop through (test) dataset, make bounding box predictions on each image, and save the updated images
+    """
+    for i in tqdm(range(data.shape[0])):
+        # Original (O.G.) image
+        og_img = np.expand_dims(data[i, :, :, CONTEXT_FRAMES], axis=2)
+        og_img = np.tile(og_img, (1, 1, 3))
+
+        # Make prediction
+        inputs = tf.expand_dims(data[i, :, :, :], axis=0)
+        prediction = model.predict(inputs, steps=1)
+        boxes = convert_matrix_to_dict(prediction, conf_thresh)
+
+        # Plot predicted boxes
+        pred_img = draw_boxes(og_img * 255, boxes[0])
+        pred_img = np.squeeze(pred_img)
+
+        # Plot true boxes
+        # Replace class values which can be 0, 1, or 2 for true labels with 1 indicating 100% confidence
+        og_labels = [(np.array(boxes[:-1]) / DOWNSCALE_FACTOR).tolist() + [1] for boxes in label_dict[i]]
+        true_img = draw_boxes(og_img * 255, og_labels)
+        true_img = np.squeeze(true_img)
+
+        # Plot and save both predicted and true images side by side
+        compare_img = np.vstack((pred_img, true_img))
+        compare_img = compare_img.astype('uint8')
+        save_img = Image.fromarray(compare_img, 'RGB')
+        save_img.save(save_path + str(i) + '.png', 'PNG')
+
+def predict_data_point(model, data, label_dict, index, conf_thresh):
+    """
+    Predict bounding boxes around hair follicles for a single data point at index
+    """
+    og_img = np.expand_dims(data[index, :, :, CONTEXT_FRAMES], axis=2)
+    og_img = np.tile(og_img, (1, 1, 3))
+
+    # Add batch dimension
+    inputs = tf.expand_dims(data[index, :, :, :], axis=0)
+
+    # Feed the input to the model
+    prediction = model.predict(inputs, steps=1)
+
+    # Transform network output ONLY for YOLO loss!!!
+    # prediction = sigmoid(prediction)
+
+    # Convert predictions from matrix form to dictionary
+    boxes = convert_matrix_to_dict(prediction, conf_thresh)
+    print('Predicted boxes: ', boxes)
+
+    # fig, axes = plt.subplots(nrows=2, ncols=1)
+
+    # Plot predicted boxes
+    pred_img = draw_boxes(og_img, boxes[0])
+    pred_img = np.squeeze(pred_img)
+    # axes[0].imshow(pred_img)
+
+    # Plot true bounding boxes
+    # Replace class values which can be 0, 1, or 2 for true labels with 1 indicating 100% confidence
+    og_labels = [(np.array(boxes[:-1]) / DOWNSCALE_FACTOR).tolist() + [1] for boxes in label_dict[index]]
+    true_img = draw_boxes(og_img, og_labels)
+    true_img = np.squeeze(true_img)
+    # axes[1].imshow(true_img)
+
+    # Plot predicted and true boxes on same plot for side by side comparison
+    compare_img = np.vstack((pred_img, true_img))
+    plt.imshow(compare_img)
+    plt.show()
 
 def main():
     parser = argparse.ArgumentParser(description='Make predictions from trained model')
-    parser.add_argument('model', help='Path to model file')
-    parser.add_argument('--img', default=0, type=int, help='Image index')
+    parser.add_argument('--model', default=MODEL_DIR, type=str, help='Path to model file')
+    parser.add_argument('--save', default=PREDICT_DIR, type=str, help='Directory where predicted images will be saved')
+    parser.add_argument('--data', default='G', type=str, help='Set of data to make predictions on (H, G, I, J)')
+    parser.add_argument('--img', default=-1, type=int, help='Image index')
     parser.add_argument('--conf', default=0.5, type=float, help='Confidence threshold')
     args = parser.parse_args()
 
-    print('Model path: {}'.format(args.model))
+    # Load the model
+    model = build_or_load(args.model)
+    # Load original data
+    data = load_3d_data('data/' + args.data + '_data')
+    # Load original labels
+    label_dict = load_label_dict('data/labels/image_boxes_' + args.data + '.txt')
+    # Modify dictionary keys from strings to ints
+    label_dict = { int((int(key) / 20) - 1) : value for key, value in label_dict.items() }
 
-    model = Hairy()
-
-    if args.model:
-        model.load_state_dict(torch.load(args.model))
+    # Predict bounding boxes
+    if args.img < 0:
+        # Make predictions on all images
+        predict_data_set(model, args.save, data, label_dict, args.conf)
     else:
-        print('WARNING: No model loaded! Please specify model path.')
+        # Make prediction on single image
+        predict_data_point(model, data, label_dict, args.img, args.conf)
 
-    # Train set
-    ss_indices_train = (0, 140)
-    # Test set
-    ss_indices_test = (140, 173)
-
-    ds = HairFollicleDataset('data.hdf5', ss_indices_train)
-    index = args.img
-    data_point = ds[index][0]
-    plt_image = np.transpose(data_point, (1, 2, 0))
-    # plt.imshow(plt_image)
-    # plt.show()
-    image = torch.unsqueeze(torch.from_numpy(data_point), 0)
-
-    output = predict(model, image)
-    # Need to permute dims for YOLO v2
-    # output = output.permute(0, 2, 3, 1)
-    print('model output: ', output, output.size())
-
-    # Transform network output to obtain bounding box predictions
-    output = torch.sigmoid(output)
-
-    boxes = convert_matrix_to_map(output.detach().numpy(), args.conf)
-    print('BOXES: ', boxes)
-
-    boxed_image = draw_boxes(plt_image, boxes[0])
-    plt.imshow(boxed_image)
-    plt.show()
 
 if __name__ == '__main__':
     main()
