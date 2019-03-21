@@ -7,7 +7,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from PIL import Image
-from constants import *
+from constants import (
+    GRID_HEIGHT,
+    GRID_WIDTH,
+    IMG_HEIGHT,
+    IMG_WIDTH,
+    CONFIDENCE_THRESHOLD,
+    MODEL_DIR,
+    S1,
+    S2,
+    T
+)
 
 def sigmoid(x):
     return 1.0 / (1.0 + np.exp(-x))

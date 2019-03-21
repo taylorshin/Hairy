@@ -6,3 +6,5 @@ opencv-python
 tqdm
 argparse
 Pillow
+glob
+joblib

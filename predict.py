@@ -1,12 +1,12 @@
 import numpy as np
+import matplotlib.pyplot as plt
 import argparse
 import tensorflow as tf
 from tqdm import tqdm
 from PIL import Image
-from dataset import *
-from model import *
-from constants import *
-from util import *
+from dataset import load_3d_data, load_label_dict
+from constants import CONTEXT_FRAMES, DOWNSCALE_FACTOR, MODEL_DIR, PREDICT_DIR
+from util import draw_boxes, convert_matrix_to_dict, build_or_load
 
 def predict_data_set(model, save_path, data, label_dict, conf_thresh):
     """

@@ -2,9 +2,9 @@ import os
 import argparse
 import numpy as np
 import tensorflow as tf
-from dataset import *
-from model import *
-from constants import *
+from dataset import DataGenerator, verify_data_generator
+from model import build_model
+from constants import PLOT_FILE, MODEL_DIR, BATCH_SIZE, LOG_DIR
 
 def train(model, batch_size, model_dir=MODEL_DIR):
     train_data_dirs = ['data/G_data', 'data/H_data']
@@ -20,11 +20,10 @@ def train(model, batch_size, model_dir=MODEL_DIR):
     callbacks = [
         tf.keras.callbacks.ModelCheckpoint(model_dir, monitor='loss', save_best_only=True, save_weights_only=True),
         # tf.keras.callbacks.EarlyStopping(monitor='loss', patience=20, verbose=1),
-        tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.8, patience=10, min_lr=1e-6, verbose=1),
+        tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.8, patience=5, min_lr=1e-6, verbose=1),
         tf.keras.callbacks.TensorBoard(log_dir=LOG_DIR, histogram_freq=0)
     ]
 
-    # TODO: Try the use_multiprocessing parameter
     return model.fit_generator(
                                 generator=train_generator,
                                 epochs=100,
@@ -46,6 +45,7 @@ def main():
     model.summary()
     history = train(model, args.batch_size)
     
+    ### LEARNING RATE EXPERIMENT ###
     # lrs = np.arange(0.00001, 0.0001, 0.00002)
     # losses = []
     # for lr in lrs:
@@ -54,7 +54,6 @@ def main():
     #     history = train(model, model_dir)
     #     losses.append(history.history['loss'][-1])
     #     print('Losses: ', losses)
-
     #     train_loss = history.history['loss']
     #     epochs = range(len(train_loss))
     #     plt.plot(epochs, train_loss, label='Training Loss')
@@ -63,7 +62,6 @@ def main():
     #     # plt.legend()
     #     plot_file = os.path.join('out', 'loss_' + str(lr) + '.png')
     #     plt.savefig(plot_file)
-
     # smallest_loss = np.min(losses)
     # print('Smallest loss: ', smallest_loss)
     # index = np.argmin(losses)

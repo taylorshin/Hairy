@@ -1,7 +1,15 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
-from constants import *
+from constants import (
+    LEARNING_RATE,
+    LAMBDA_COORD,
+    LAMBDA_NOOBJ,
+    IMG_CHANNELS,
+    IMG_HEIGHT,
+    IMG_WIDTH,
+    T
+)
 
 def mse_loss(y_true, y_pred):
     # print('y_true: ', y_true, tf.shape(y_true))

@@ -11,8 +11,23 @@ from tensorflow import keras
 from joblib import Parallel, delayed
 from PIL import Image
 from tqdm import tqdm
-from constants import *
-from util import *
+from constants import (
+    DATA_AUG_PROB,
+    PIXEL_SHIFT_X,
+    PIXEL_SHIFT_Y,
+    DOWNSCALE_FACTOR,
+    IMG_WIDTH,
+    IMG_HEIGHT,
+    LABEL_FRAME_INTERVAL,
+    CONTEXT_FRAMES,
+    CONFIDENCE_THRESHOLD
+)
+from util import (
+    convert_matrix_to_dict,
+    convert_dict_to_matrix,
+    convert_lists_to_matrix,
+    draw_boxes
+)
 
 class DataGenerator(keras.utils.Sequence):
 
@@ -66,7 +81,7 @@ class DataGenerator(keras.utils.Sequence):
             # Augment individual images in a batch
             for i in range(len(imgs)):
                 dx = random.randint(-PIXEL_SHIFT_X, PIXEL_SHIFT_X)
-                dy = random.randint(0, PIXEL_SHIFT_Y)
+                dy = random.randint(-10, PIXEL_SHIFT_Y)
                 # Augment volume of images
                 imgs[i] = shift_volume(imgs[i], dx, dy)
                 # Augment labels
