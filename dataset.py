@@ -73,7 +73,13 @@ class DataGenerator(keras.utils.Sequence):
                 list_label_set[i] = shift_labels(list_label_set[i], dx, dy)
 
         x = np.array(imgs)
+        x = np.transpose(x, (0, 3, 1, 2))
+        x = np.expand_dims(x, axis=4)
+        # print('X: ', x.shape)
         y = convert_lists_to_matrix(list_label_set)
+        # y = np.transpose(y, (0, 3, 1, 2))
+        # y = np.expand_dims(y, axis=4)
+        # print('Y: ', y.shape)
         return x, y
 
     def on_epoch_end(self):
@@ -238,8 +244,7 @@ def verify_data_generator(generator):
         print('LABELS BATCH: ', label_batch.shape)
         for j in range(BATCH_SIZE):
             print('IMG {}'.format(j))
-            img = data_batch[j, :, :, 5]
-            img = img[:, :, np.newaxis]
+            img = data_batch[j, CONTEXT_FRAMES, ...]
             img = np.tile(img, (1, 1, 3))
             boxes = convert_matrix_to_dict(label_batch, conf_thresh=CONFIDENCE_THRESHOLD)
             box_img = draw_boxes(img, boxes[j])

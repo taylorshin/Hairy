@@ -7,20 +7,20 @@ from model import *
 from constants import *
 
 def train(model, batch_size, model_dir=MODEL_DIR):
-    train_data_dirs = ['data/G_data', 'data/H_data']
-    train_label_files = ['data/labels/image_boxes_G.txt', 'data/labels/image_boxes_H.txt']
+    train_data_dirs = ['data/G_data']#, 'data/H_data']
+    train_label_files = ['data/labels/image_boxes_G.txt']#, 'data/labels/image_boxes_H.txt']
     val_data_dirs = ['data/I_data']
     val_label_files = ['data/labels/image_boxes_I.txt']
     train_generator = DataGenerator(train_data_dirs, train_label_files, batch_size, enable_data_aug=True)
-    val_generator = DataGenerator(val_data_dirs, val_label_files, batch_size, enable_data_aug=False)
+    # val_generator = DataGenerator(val_data_dirs, val_label_files, batch_size, enable_data_aug=False)
 
     # Check if data looks correct
-    # verify_data_generator(val_generator)
+    # verify_data_generator(train_generator)
 
     callbacks = [
         tf.keras.callbacks.ModelCheckpoint(model_dir, monitor='loss', save_best_only=True, save_weights_only=True),
         # tf.keras.callbacks.EarlyStopping(monitor='loss', patience=20, verbose=1),
-        tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.8, patience=10, min_lr=1e-6, verbose=1),
+        # tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.8, patience=10, min_lr=1e-6, verbose=1),
         tf.keras.callbacks.TensorBoard(log_dir=LOG_DIR, histogram_freq=0)
     ]
 
@@ -28,8 +28,8 @@ def train(model, batch_size, model_dir=MODEL_DIR):
     return model.fit_generator(
                                 generator=train_generator,
                                 epochs=100,
-                                callbacks=callbacks,
-                                validation_data=val_generator
+                                callbacks=callbacks
+                                #validation_data=val_generator
                             )
 
 def main():

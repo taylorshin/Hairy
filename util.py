@@ -157,6 +157,7 @@ def convert_matrix_to_dict(labels, conf_thresh=CONFIDENCE_THRESHOLD):
     """
     Takes in a label matrix and converts it into a label dictionary
     """
+    print('LABELS: ', labels.shape)
     label_dict = {}
 
     for i in range(len(labels)):

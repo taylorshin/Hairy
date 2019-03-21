@@ -4,9 +4,14 @@ from tensorflow.keras import layers
 from constants import *
 
 def mse_loss(y_true, y_pred):
-    # print('y_true: ', y_true, tf.shape(y_true))
-    # print('y_pred: ', y_pred, tf.shape(y_pred))
+    # print('y_pred before: ', tf.shape(y_pred))
+    # y_pred = tf.squeeze(y_pred)
+    # y_pred = y_pred[:, CONTEXT_FRAMES, :, :, :]
+    y_true = tf.expand_dims(y_true, axis=1)
+    print('y_true: ', tf.shape(y_true))
+    print('y_pred: ', tf.shape(y_pred))
     mse = tf.reduce_mean(tf.square(y_pred - y_true))
+    print('MSE: ', mse)
     return mse
 
 def calculate_iou_scores(true_boxes, pred_boxes):
@@ -94,69 +99,59 @@ def build_model(lr=LEARNING_RATE):
     YOLO v2 Architecture
     """
     # Input layer
-    inputs = keras.Input(shape=(IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS))
+    inputs = keras.Input(shape=(IMG_DEPTH, IMG_HEIGHT, IMG_WIDTH, 1))
 
     # Layer 1
-    x = layers.Conv2D(filters=16, kernel_size=3, strides=1)(inputs)
+    x = layers.Conv3D(filters=16, kernel_size=(1, 3, 3), strides=1)(inputs)
     # x = layers.BatchNormalization()(x)
-    x = layers.LeakyReLU(alpha=0.1)(x)
-    x = layers.MaxPooling2D(pool_size=2, strides=2)(x)
+    # x = layers.LeakyReLU(alpha=0.1)(x)
+    x = layers.MaxPooling3D(pool_size=(1, 2, 2), strides=(1, 2, 2), name='maxpool3d_1')(x)
 
     # Layer 2
-    x = layers.Conv2D(filters=32, kernel_size=3, strides=1)(x)
+    x = layers.Conv3D(filters=32, kernel_size=(1, 3, 3), strides=1)(x)
     # x = layers.BatchNormalization()(x)
-    x = layers.LeakyReLU(alpha=0.1)(x)
-    x = layers.MaxPooling2D(pool_size=2, strides=2)(x)
+    # x = layers.LeakyReLU(alpha=0.1)(x)
+    x = layers.MaxPooling3D(pool_size=(1, 2, 2), strides=(1, 2, 2), name='maxpool3d_2')(x)
 
     # Layer 3
-    x = layers.Conv2D(filters=64, kernel_size=3, strides=1)(x)
-    x = layers.LeakyReLU(alpha=0.1)(x)
-    x = layers.Conv2D(filters=32, kernel_size=1, strides=1)(x)
-    x = layers.LeakyReLU(alpha=0.1)(x)
-    x = layers.Conv2D(filters=64, kernel_size=3, strides=1)(x)
+    x = layers.Conv3D(filters=64, kernel_size=(1, 3, 3), strides=1)(x)
     # x = layers.BatchNormalization()(x)
-    x = layers.LeakyReLU(alpha=0.1)(x)
-    x = layers.MaxPooling2D(pool_size=2, strides=2)(x)
+    # x = layers.LeakyReLU(alpha=0.1)(x)
+    x = layers.MaxPooling3D(pool_size=(2, 2, 2), strides=(2, 2, 2), name='maxpool3d_3')(x)
 
     # Layer 4
-    x = layers.Conv2D(filters=128, kernel_size=3, strides=1)(x)
-    x = layers.LeakyReLU(alpha=0.1)(x)
-    x = layers.Conv2D(filters=64, kernel_size=1, strides=1)(x)
-    x = layers.LeakyReLU(alpha=0.1)(x)
-    x = layers.Conv2D(filters=128, kernel_size=3, strides=1)(x)
+    x = layers.Conv3D(filters=128, kernel_size=(1, 3, 3), strides=1)(x)
     # x = layers.BatchNormalization()(x)
-    x = layers.LeakyReLU(alpha=0.1)(x)
-    x = layers.MaxPooling2D(pool_size=2, strides=2)(x)
+    # x = layers.LeakyReLU(alpha=0.1)(x)
+    x = layers.MaxPooling3D(pool_size=(2, 2, 2), strides=(2, 2, 2), name='maxpool3d_4')(x)
 
     # Layer 5
-    x = layers.Conv2D(filters=256, kernel_size=3, strides=1)(x)
-    x = layers.LeakyReLU(alpha=0.1)(x)
-    x = layers.Conv2D(filters=128, kernel_size=1, strides=1)(x)
-    x = layers.LeakyReLU(alpha=0.1)(x)
-    x = layers.Conv2D(filters=256, kernel_size=3, strides=1)(x)
+    x = layers.Conv3D(filters=128, kernel_size=(1, 3, 3), strides=1)(x)
     # x = layers.BatchNormalization()(x)
-    x = layers.LeakyReLU(alpha=0.1)(x)
-    x = layers.MaxPooling2D(pool_size=2, strides=2)(x)
+    # x = layers.LeakyReLU(alpha=0.1)(x)
+    x = layers.MaxPooling3D(pool_size=(1, 2, 2), strides=(1, 2, 2), name='maxpool3d_5')(x)
 
-    x = layers.Conv2D(filters=512, kernel_size=3, strides=1)(x)
+    # Layer 6
+    x = layers.Conv3D(filters=256, kernel_size=(1, 3, 3), strides=1)(x)
     # x = layers.BatchNormalization()(x)
-    x = layers.LeakyReLU(alpha=0.1)(x)
-    x = layers.MaxPooling2D(pool_size=2, strides=2)(x)
+    # x = layers.LeakyReLU(alpha=0.1)(x)
+    x = layers.MaxPooling3D(pool_size=(1, 2, 2), strides=(1, 2, 2), name='maxpool3d_6')(x)
 
-    x = layers.Conv2D(filters=512, kernel_size=3, strides=1)(x)
+    # Layer 7
+    # x = layers.Conv3D(filters=256, kernel_size=(1, 3, 3), strides=1)(x)
     # x = layers.BatchNormalization()(x)
-    x = layers.LeakyReLU(alpha=0.1)(x)
+    # x = layers.LeakyReLU(alpha=0.1)(x)
 
-    # Layer 15
-    outputs = layers.Conv2D(filters=T, kernel_size=1)(x)
+    # Layer 8
+    outputs = layers.Conv3D(filters=T, kernel_size=(1, 1, 1))(x)
 
     # Assemble the model
     model = keras.Model(inputs=inputs, outputs=outputs)
     ### This optimizer needs to be used for debug mode ###
-    # optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
+    optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
     # learning_rate = tf.train.exponential_decay(1e-4, 0, 100000, 0.96)
     ### This optimizer works with ReduceLROnPlateau ###
-    optimizer = keras.optimizers.Adam(lr=lr)
+    # optimizer = keras.optimizers.Adam(lr=lr)
     # model.compile(loss='mse', optimizer=optimizer, metrics=['mse'])
     model.compile(loss=mse_loss, optimizer=optimizer)
 
